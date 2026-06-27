@@ -8,33 +8,70 @@
   border: 1px solid #d6dce2;
   border-radius: 8px;
   background: #ffffff;
-  cursor: grab;
 }
 
 .lane.dragging {
   opacity: 0.55;
 }
 
-.lane:active {
-  cursor: grabbing;
+/* Insertion highlight on the lane the dragged header is currently over. */
+.lane.drop-target {
+  outline: 2px solid #2166a7;
+  outline-offset: -2px;
 }
 
+/* The header is the drag handle (reorder / remove); the plot area below stays
+   free for range selection and cursor placement. */
 .lane-header {
   display: flex;
   flex: 0 0 auto;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   padding: 10px 12px 4px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.lane-header:active {
+  cursor: grabbing;
+}
+
+/* Left block may shrink so the title/meta ellipsize instead of pushing into the
+   cursor value on the right. */
+.lane-header-info {
+  min-width: 0;
 }
 
 .lane-title {
+  overflow: hidden;
   font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .lane-meta {
+  overflow: hidden;
   margin-top: 2px;
   color: #72808e;
   font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Cursor-position value for this lane, shown discreetly in the top-right. */
+.lane-cursor-value {
+  flex: 0 0 auto;
+  max-width: 45%;
+  overflow: hidden;
+  color: #2b3a45;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .lane-plot {

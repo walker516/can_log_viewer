@@ -1,16 +1,24 @@
 import { useMemo, useState } from "react";
 import type { SignalIndexItem } from "../types";
 import type { SignalSelection } from "../hooks/useSignalSelection";
+import type { RecentSignals } from "../hooks/useRecentSignals";
+import { MAX_DISPLAY_SIGNALS } from "../lib/constants";
 import "./SignalSidebar.css";
 
 interface SignalSidebarProps {
   signals: SignalIndexItem[];
   selection: SignalSelection;
+  recent: RecentSignals;
 }
 
-// Search-first signal selection: fixed-width pane with an internal scroll,
-// a search box, selected-signal tags, and the filtered result list.
-export function SignalSidebar({ signals, selection }: SignalSidebarProps) {
+// Identity/metadata needed to add a signal (both list rows and recent entries
+// satisfy this).
+type AddableSignal = Pick<SignalIndexItem, "signal_name" | "message_name" | "can_id" | "unit">;
+
+// Add-only, search-first signal pane: fixed width with an internal list scroll,
+// a search box, a Recent helper, and the filtered result list. Removal and
+// reordering of selected signals live on the timeline, not here.
+export function SignalSidebar({ signals, selection, recent }: SignalSidebarProps) {
   const [open, setOpen] = useState(true);
   const [search, setSearch] = useState("");
 
@@ -25,6 +33,12 @@ export function SignalSidebar({ signals, selection }: SignalSidebarProps) {
     );
   }, [signals, search]);
 
+  // Only show recent entries that exist in the currently opened log.
+  const recentForLog = useMemo(() => {
+    const available = new Set(signals.map((signal) => signal.signal_name));
+    return recent.recent.filter((item) => available.has(item.signal_name));
+  }, [signals, recent.recent]);
+
   if (!open) {
     return (
       <button className="sidebar-tab" type="button" onClick={() => setOpen(true)} aria-label="Open signals">
@@ -34,7 +48,19 @@ export function SignalSidebar({ signals, selection }: SignalSidebarProps) {
     );
   }
 
-  const { selectedSignals, draggedSignal, setDraggedSignal, toggleSignal, removeSignal, reorderSignal } = selection;
+  const { selectedSignals, selectSignal } = selection;
+
+  // The sidebar only adds signals; removal and reordering live on the timeline
+  // (lane header drag → trash drop zone). Clicking a signal selects it (no-op if
+  // already selected; the 5-signal cap is enforced in selectSignal), and a real
+  // addition is recorded in Recent.
+  const addSignal = (item: AddableSignal) => {
+    const willAdd = !selectedSignals.includes(item.signal_name) && selectedSignals.length < MAX_DISPLAY_SIGNALS;
+    selectSignal(item.signal_name);
+    if (willAdd) {
+      recent.record(item);
+    }
+  };
 
   return (
     <aside className="sidebar">
@@ -54,30 +80,28 @@ export function SignalSidebar({ signals, selection }: SignalSidebarProps) {
         />
       </div>
 
-      <div className="selected-tags" aria-label="Selected signals">
-        {selectedSignals.map((name) => (
-          <button
-            key={name}
-            className="signal-tag"
-            type="button"
-            draggable
-            onClick={() => removeSignal(name)}
-            onDragStart={() => setDraggedSignal(name)}
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={() => {
-              if (draggedSignal) {
-                reorderSignal(draggedSignal, name);
-              }
-              setDraggedSignal(null);
-            }}
-            onDragEnd={() => setDraggedSignal(null)}
-            title="Remove signal"
-          >
-            <span>{name}</span>
-            <span aria-hidden="true">x</span>
-          </button>
-        ))}
-      </div>
+      {recentForLog.length > 0 ? (
+        <div className="recent-block">
+          <div className="recent-head">Recent</div>
+          <div className="recent-list" aria-label="Recently selected signals">
+            {recentForLog.map((item) => {
+              const selected = selectedSignals.includes(item.signal_name);
+              return (
+                <button
+                  key={item.signal_name}
+                  className={`recent-item ${selected ? "selected" : ""}`}
+                  type="button"
+                  disabled={selected}
+                  onClick={() => addSignal(item)}
+                  title={`${item.message_name} / ${item.can_id}${item.unit ? ` / ${item.unit}` : ""}`}
+                >
+                  {item.signal_name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
 
       <div className="signal-list">
         {filtered.map((signal) => {
@@ -87,7 +111,7 @@ export function SignalSidebar({ signals, selection }: SignalSidebarProps) {
               key={`${signal.can_id}:${signal.signal_name}`}
               className={`signal-row ${selected ? "selected" : ""}`}
               type="button"
-              onClick={() => toggleSignal(signal.signal_name)}
+              onClick={() => addSignal(signal)}
             >
               <span className="signal-name">{signal.signal_name}</span>
               <span className="signal-meta">

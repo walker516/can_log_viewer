@@ -8,6 +8,8 @@ import { useSignalSelection } from "./hooks/useSignalSelection";
 import { useSignalQuery } from "./hooks/useSignalQuery";
 import { useTimelineView } from "./hooks/useTimelineView";
 import { useTimelineExport } from "./hooks/useTimelineExport";
+import { useRecentSignals } from "./hooks/useRecentSignals";
+import { formatWarningSummary } from "./lib/warnings";
 
 // App is a thin composition layer: it wires the feature hooks together and lays
 // out the three panels. All real logic lives in hooks/ and lib/.
@@ -18,6 +20,7 @@ function App() {
   const session = useLogSession(report);
   const onSelectionLimit = useCallback(() => report.setStatus("Up to 5 signals can be displayed."), [report]);
   const selection = useSignalSelection(session.cachePath, onSelectionLimit);
+  const recent = useRecentSignals();
   const view = useTimelineView(session.fullRange, timelineRef);
 
   const query = useSignalQuery({
@@ -36,6 +39,10 @@ function App() {
     [session.inspect]
   );
 
+  // Decode-warning summary comes from the inspect result (by_code counts) and
+  // stays tied to the opened log, independent of transient query status.
+  const warningSummary = useMemo(() => formatWarningSummary(session.inspect?.warnings), [session.inspect]);
+
   return (
     <main className="app-shell">
       <Topbar
@@ -43,18 +50,20 @@ function App() {
         status={report.status}
         loading={report.loading}
         canExport={canExport}
+        canFitAll={Boolean(session.inspect)}
+        warningSummary={warningSummary}
         onOpenLog={session.openLog}
+        onFitAll={view.fitAll}
         onExport={exportPng}
       />
       <section className="workspace">
-        <SignalSidebar signals={session.inspect?.signals ?? []} selection={selection} />
+        <SignalSidebar signals={session.inspect?.signals ?? []} selection={selection} recent={recent} />
         <Timeline
           timelineRef={timelineRef}
           view={view}
           selection={selection}
           signalByName={signalByName}
           query={query}
-          hasInspect={Boolean(session.inspect)}
         />
       </section>
     </main>

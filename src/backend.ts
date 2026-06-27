@@ -25,6 +25,8 @@ export async function queryCache(
   });
 }
 
-export async function savePng(path: string, bytes: number[]): Promise<void> {
-  return invoke("save_png", { path, bytes });
+// Exports a rendered timeline PNG into the app-managed exports/png directory.
+// The backend owns the destination and file name; returns the saved file name.
+export async function exportTimelinePng(logFileName: string, bytes: number[]): Promise<string> {
+  return invoke<string>("export_timeline_png", { logFileName, bytes });
 }

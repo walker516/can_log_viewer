@@ -52,9 +52,12 @@ Initial implementation should prefer append-style concatenation unless a later t
 - Search by signal name.
 - Search by message name.
 - Search by CAN ID.
-- Show recently selected signals when useful.
-- Add signals by clicking search results.
-- Remove signals through selected signal tags.
+- Add signals by clicking search results (add-only; selected state shown by list
+  highlight, not a tag list).
+- Remove signals on the timeline (lane header drag → trash drop zone), not in the
+  Signals pane.
+- Showing recently selected signals as a re-selection aid is planned (UC-04, not
+  implemented yet).
 
 ### Timeline View
 
@@ -70,11 +73,15 @@ Initial implementation should prefer append-style concatenation unless a later t
 ### Export
 
 - Export the current visible timeline as PNG.
-- Export should use the current visible range and selected signals by default.
-- Save export metadata such as visible range and selected signals.
-- Let users choose the PNG destination.
+- Export uses the current visible range and selected signals.
+- Export without a save dialog: write to the app-managed `app_data_root()/exports/png/`
+  directory (the user does not choose the destination; never Downloads).
+- Use a deterministic file name from the log basename plus timestamp, with
+  collision suffixes and no overwriting.
+- Saving export metadata (visible range / selected signals) is deferred (tied to
+  the out-of-scope Save View / view-state work).
 
-### History
+### History (planned, not implemented)
 
 - Automatically save viewed sessions.
 - Store selected signals, visible ranges, export history, and thumbnails when available.
@@ -84,10 +91,11 @@ Initial implementation should prefer append-style concatenation unless a later t
 
 ### Decode Cache
 
-- Cache decoded parquet / duckdb data.
+- Cache decoded parquet / duckdb data under the app-managed `app_data_root()` (the
+  user does not select the location).
 - Store cache separately from history.
-- Use capacity-based LRU deletion.
 - Make cache entries identifiable by source logs, DBCs, parser options, and relevant file metadata.
+- Capacity-based LRU deletion is planned (not implemented yet).
 
 ## Non-Requirements
 

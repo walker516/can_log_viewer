@@ -126,6 +126,41 @@ export function buildPointMarks(
     .map((point) => ({ x: toX(point.session_time, start, end), y: toY(point.value as number, stats) }));
 }
 
+// Hold-last-value lookup for the cursor: the last sample at or before `time`.
+// Points are sorted ascending by session_time (the query returns them sorted),
+// so a binary search finds the held value. Returns null when nothing precedes
+// the cursor in the available data.
+export function pointAtOrBefore(points: TimelinePoint[], time: number): TimelinePoint | null {
+  let lo = 0;
+  let hi = points.length - 1;
+  let result: TimelinePoint | null = null;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (points[mid].session_time <= time) {
+      result = points[mid];
+      lo = mid + 1;
+    } else {
+      hi = mid - 1;
+    }
+  }
+  return result;
+}
+
+// Format the cursor's held value for a lane: enum label takes priority, then a
+// numeric value with its unit; "-" when there is no value before the cursor.
+export function formatCursorValue(point: TimelinePoint | null, unit: string): string {
+  if (!point) {
+    return "-";
+  }
+  if (point.enum_label) {
+    return point.enum_label;
+  }
+  if (point.value === null || !Number.isFinite(point.value)) {
+    return "-";
+  }
+  return unit ? `${formatValue(point.value)} ${unit}` : formatValue(point.value);
+}
+
 // Find the sample closest in time to the pointer's horizontal position.
 export function nearestPoint(
   points: TimelinePoint[],

@@ -7,44 +7,48 @@
   overflow: hidden;
 }
 
-.range-bar {
+/* Floating notes over the plot (trash drop zone / missing-signal note). Placed
+   just below the time axis and centered; takes no layout height. */
+.timeline-overlay {
+  position: absolute;
+  top: 40px;
+  left: 0;
+  right: 0;
+  z-index: 5;
   display: flex;
-  flex: 0 0 auto;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: center;
-  min-height: 46px;
-  padding: 8px 16px;
-  border-bottom: 1px solid #d6dce2;
-  background: #ffffff;
+  justify-content: center;
+  pointer-events: none;
 }
 
-.range-actions {
-  display: flex;
+/* Trash drop zone: shown only while a lane header is being dragged. */
+.trash-zone {
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-.text-action {
+  gap: 8px;
   height: 30px;
-  border: 1px solid #c5ced8;
+  padding: 0 12px;
+  border: 1px dashed #c98b84;
   border-radius: 6px;
-  padding: 0 10px;
-  color: #334452;
-  background: #ffffff;
-  cursor: pointer;
+  color: #a4453a;
+  background: #fbf1ef;
+  font-size: 12px;
+  pointer-events: auto;
 }
 
-.text-action:disabled {
-  cursor: default;
-  opacity: 0.5;
+.trash-zone.over {
+  border-style: solid;
+  color: #ffffff;
+  background: #b4453a;
 }
 
 .inline-warning {
-  align-self: center;
+  max-width: 90%;
   overflow: hidden;
+  border: 1px solid #e3cfa6;
+  border-radius: 6px;
+  padding: 4px 10px;
   color: #8a5a16;
+  background: #fdf6e7;
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;

@@ -25,11 +25,17 @@ The primary use case is offline log analysis, not real-time playback.
 ## UI Policy
 
 - Always minimize visible buttons.
-- The top-level UI should have only essential actions such as Open and Export.
-- Save view should be automatic, not a primary button.
-- Use mouse interactions for zoom, pan, and range selection.
-- Signal selection should be done by clicking search results.
-- Signal removal should be done through selected signal tags.
+- The top-level UI should have only essential actions: Open Log, plus Fit All and
+  Export as right-side toolbar icon buttons.
+- Save View is out of scope; do not add it. If view persistence is ever added it
+  must be automatic, not a button.
+- Use mouse interactions for range selection (plot-area drag) and cursor (plot
+  click); double-click or the Fit All icon resets to full range.
+- Signal selection is add-only by clicking search results; selected state is
+  shown by list highlight (no selected-signal tag list, no × icon).
+- Signal removal and lane reordering are done on the timeline (lane header drag →
+  trash drop zone shown only during the drag), not in the Signals pane.
+- Cursor-position values are shown per lane (top-right), not in a Topbar list.
 - Advanced options should be hidden behind context menu, drawer, or settings.
 - No brand-heavy title or product naming is needed.
 
@@ -107,11 +113,12 @@ Decode cache:
 
 ## Required Reading Before Coding
 
+- `docs/use_cases.md` — authoritative spec baseline (wins when docs disagree).
+- `docs/task_plan.md` — done / next / out of scope; check before any change.
 - `README.md`
 - `docs/requirements.md`
 - `docs/architecture.md`
 - `docs/ui_policy.md`
-- `docs/task_plan.md`
 
 ## Do Not Implement Yet
 
@@ -125,3 +132,18 @@ Unless explicitly requested, do not implement:
 - Heavy project branding
 - Cloud upload
 - User authentication
+- DBC selection UI or a `--dbc` CLI option (the bundled `default.dbc` is fixed)
+- Save View, view-metadata save, or session restore
+- Session history / cache ring buffer, or decode-cache LRU cleanup
+- PDF / CSV / JSON export
+- Lane-height drag resizing
+- Signal selection history (UC-04) — planned later/Should; do not mix in unprompted
+
+## Path and Export Guardrails (already shipped)
+
+- PNG export has no save dialog and writes to `app_data_root()/exports/png/`.
+  Do not revert it to a save dialog or to Downloads. The frontend passes only the
+  rendered bytes and the log basename; the Tauri/Rust layer owns the path and
+  file name. Cache and exports both derive from a single `app_data_root()`.
+- Cache is internal and not user-selectable.
+- Do not increase always-visible UI information.

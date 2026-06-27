@@ -1,6 +1,17 @@
 import { useState } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import type { SignalIndexItem, TimelinePoint } from "../types";
-import { buildPath, buildPointMarks, formatTime, formatValue, nearestPoint, pointStats, PLOT_WIDTH } from "../lib/timeline";
+import {
+  buildPath,
+  buildPointMarks,
+  formatCursorValue,
+  formatTime,
+  formatValue,
+  nearestPoint,
+  pointAtOrBefore,
+  pointStats,
+  PLOT_WIDTH
+} from "../lib/timeline";
 import "./TimelineLane.css";
 
 interface TimelineLaneProps {
@@ -8,12 +19,12 @@ interface TimelineLaneProps {
   points: TimelinePoint[];
   start: number;
   end: number;
+  cursorTime: number;
   ticks: number[];
   laneHeight: number;
   isDragged: boolean;
-  onDragStart: (signalName: string) => void;
-  onDropSignal: (targetSignalName: string) => void;
-  onDragEnd: () => void;
+  isDropTarget: boolean;
+  onHeaderPointerDown: (signalName: string, event: ReactPointerEvent) => void;
 }
 
 // One stacked signal lane: header plus a point plot. Lanes are draggable to
@@ -23,37 +34,44 @@ export function TimelineLane({
   points,
   start,
   end,
+  cursorTime,
   ticks,
   laneHeight,
   isDragged,
-  onDragStart,
-  onDropSignal,
-  onDragEnd
+  isDropTarget,
+  onHeaderPointerDown
 }: TimelineLaneProps) {
   const [hover, setHover] = useState<{ point: TimelinePoint; x: number; y: number } | null>(null);
   const label = signal?.signal_name ?? "Unknown";
   const stats = pointStats(points);
   const path = buildPath(points, start, end, signal?.plot_type ?? "line", stats);
   const pointMarks = buildPointMarks(points, start, end, stats);
+  // Held value at the cursor time, shown in the lane's top-right. Derived from
+  // cursorTime (not hover) so hovering never replaces it.
+  const cursorValue = formatCursorValue(pointAtOrBefore(points, cursorTime), signal?.unit ?? "");
 
   return (
     <div
-      className={`lane ${isDragged ? "dragging" : ""}`}
-      title={`${label} timeline`}
+      // data-lane-signal lets the pointer-drag hit-test find this lane as a drop
+      // target via document.elementFromPoint.
+      data-lane-signal={label}
+      className={`lane ${isDragged ? "dragging" : ""} ${isDropTarget ? "drop-target" : ""}`}
       style={{ height: laneHeight }}
-      draggable
-      onDragStart={() => onDragStart(label)}
-      onDragOver={(event) => event.preventDefault()}
-      onDrop={() => onDropSignal(label)}
-      onDragEnd={onDragEnd}
     >
-      <div className="lane-header">
-        <div>
+      <div
+        className="lane-header"
+        title="Drag to reorder; drop on the trash to remove"
+        onPointerDown={(event) => onHeaderPointerDown(label, event)}
+      >
+        <div className="lane-header-info">
           <div className="lane-title">{label}</div>
           <div className="lane-meta">
             {signal?.message_name ?? ""} {signal?.unit ? `/ ${signal.unit}` : ""} ·{" "}
             {stats ? `${formatValue(stats.min)}-${formatValue(stats.max)}` : "no range"}
           </div>
+        </div>
+        <div className="lane-cursor-value" title={cursorValue}>
+          {cursorValue}
         </div>
       </div>
       <svg

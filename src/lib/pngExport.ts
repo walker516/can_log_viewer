@@ -11,7 +11,8 @@ export async function renderTimelinePng(element: HTMLElement): Promise<Uint8Arra
   }
 
   const clone = element.cloneNode(true) as HTMLElement;
-  clone.querySelectorAll(".point-tooltip").forEach((node) => node.remove());
+  // Drop transient/interaction-only overlays from the exported image.
+  clone.querySelectorAll(".point-tooltip, .export-exclude").forEach((node) => node.remove());
   inlineComputedStyles(element, clone);
   clone.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
   clone.style.width = `${width}px`;

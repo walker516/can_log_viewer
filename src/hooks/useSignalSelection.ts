@@ -3,28 +3,28 @@ import { MAX_DISPLAY_SIGNALS } from "../lib/constants";
 
 export interface SignalSelection {
   selectedSignals: string[];
-  draggedSignal: string | null;
-  setDraggedSignal: (signalName: string | null) => void;
-  toggleSignal: (signalName: string) => void;
+  selectSignal: (signalName: string) => void;
   removeSignal: (signalName: string) => void;
   reorderSignal: (signalName: string, targetSignalName: string) => void;
 }
 
 // Owns the set of selected signals and their display order. `resetKey` is the
 // active cache path: when a different log is opened the selection clears.
+// The sidebar only adds; removal/reordering are driven from the timeline.
 export function useSignalSelection(resetKey: string, onLimit: () => void): SignalSelection {
   const [selectedSignals, setSelectedSignals] = useState<string[]>([]);
-  const [draggedSignal, setDraggedSignal] = useState<string | null>(null);
 
   useEffect(() => {
     setSelectedSignals([]);
   }, [resetKey]);
 
-  const toggleSignal = useCallback(
+  // Add-only selection: never toggles a signal off, so re-clicking a selected
+  // signal is a no-op. Honors the 5-signal cap.
+  const selectSignal = useCallback(
     (signalName: string) => {
       setSelectedSignals((current) => {
         if (current.includes(signalName)) {
-          return current.filter((name) => name !== signalName);
+          return current;
         }
         if (current.length >= MAX_DISPLAY_SIGNALS) {
           onLimit();
@@ -40,7 +40,7 @@ export function useSignalSelection(resetKey: string, onLimit: () => void): Signa
     setSelectedSignals((current) => current.filter((name) => name !== signalName));
   }, []);
 
-  // Drag-and-drop reordering shared by the sidebar tags and the timeline lanes.
+  // Reordering driven by timeline lane-header drag.
   const reorderSignal = useCallback((signalName: string, targetSignalName: string) => {
     if (signalName === targetSignalName) {
       return;
@@ -58,5 +58,5 @@ export function useSignalSelection(resetKey: string, onLimit: () => void): Signa
     });
   }, []);
 
-  return { selectedSignals, draggedSignal, setDraggedSignal, toggleSignal, removeSignal, reorderSignal };
+  return { selectedSignals, selectSignal, removeSignal, reorderSignal };
 }

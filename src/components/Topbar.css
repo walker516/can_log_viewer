@@ -1,7 +1,10 @@
 .topbar {
   flex: 0 0 52px;
   display: grid;
-  grid-template-columns: auto auto minmax(120px, 1fr) minmax(180px, auto);
+  grid-template-columns: auto minmax(120px, 1fr) auto auto auto;
+  /* Single full-height row so align-items:center centers items over the whole
+     bar (without this, the auto row sits at the top and items look top-aligned). */
+  grid-template-rows: 1fr;
   align-items: center;
   gap: 12px;
   padding: 0 16px;
@@ -19,9 +22,24 @@
   cursor: pointer;
 }
 
-.secondary-action {
+.primary-action:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+/* Right-side icon actions: Fit All and Export. */
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.icon-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
   height: 32px;
-  padding: 0 12px;
   border: 1px solid #c5ced8;
   border-radius: 6px;
   color: #334452;
@@ -29,16 +47,28 @@
   cursor: pointer;
 }
 
-.primary-action:disabled,
-.secondary-action:disabled {
+.icon-action:hover:not(:disabled) {
+  background: #eef3f6;
+}
+
+.icon-action:disabled {
   cursor: default;
-  opacity: 0.55;
+  opacity: 0.45;
 }
 
 .open-file-name {
   overflow: hidden;
   color: #596875;
   font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Decode-warning count: discreet amber, matching the timeline's inline warning. */
+.warning-summary {
+  overflow: hidden;
+  color: #8a5a16;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

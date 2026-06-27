@@ -18,10 +18,16 @@ This is not a real-time player and not a full CANalyzer-style workspace. Avoid c
 
 Visible top-level actions should be minimal.
 
+The current Topbar holds: Open Log (left); the opened log basename; a discreet
+warning/status area; and the Fit All and Export icon buttons on the right. Fit
+All and Export are icon-only (labelled via tooltip/aria-label). Topbar items are
+vertically centered. Do not increase the always-visible information here.
+
 Preferred visible actions:
 
 - Open
 - Export
+- Fit All (right-side icon)
 
 Avoid top-level buttons for:
 
@@ -42,48 +48,54 @@ These actions should be automatic, mouse-based, hidden in context menus, or plac
 
 Preferred layout:
 
-- Left: signal search and selected signal tags
-- Center: vertically stacked timeline lanes
-- Top of timeline area: optional overview / range mini map
-- Optional right drawer: signal details or warnings
+- Left: fixed-width Signals pane (search + result list; the list scrolls).
+- Center: vertically stacked timeline lanes.
+- The Signals pane and the timeline share the same top edge / height; no empty
+  band above the timeline.
 
 Do not make the first screen a marketing or landing page. The first screen should be the usable analysis workspace.
 
 ## Signal Selection
 
-- Search results can be clicked to add signals.
-- Selected signals are shown as tags.
-- Tags provide the removal affordance.
-- Selected signal lanes may be reordered by drag and drop when implemented.
+- Search results are clicked to add signals (add-only; the 5-signal cap applies).
+- The selected state is shown by highlighting rows in the signal list. There is
+  no selected-signal tag list and no always-visible × remove icon.
+- Removal and reordering of displayed signals are done on the timeline, not in
+  the Signals pane (see Timeline Interaction).
 - Do not use a large always-visible signal management toolbar.
 
 ## Timeline Interaction
 
 Preferred interactions:
 
-- Mouse wheel: zoom
-- Drag: pan
-- Range drag: select range
-- Double click: fit or reset if needed
-- Context menu: advanced actions
+- Plot-area drag: select a visible range (translucent overlay).
+- Plot-area click: place the persistent cursor bar.
+- Double click: Fit All (also available as the right-side toolbar icon).
+- Lane header drag: reorder lanes.
+- Lane header drag → trash drop zone (shown only during the drag): remove a
+  signal. Do not show a per-lane remove icon at all times.
+- Each lane shows the cursor-position value in its top-right; do not show a
+  combined cursor/value list in the Topbar or above the timeline.
+- There is no Start/End numeric input; range is set by dragging.
 
 Do not add playback controls or playback speed controls.
 
 ## Export
 
-Export should default to:
+Export is a single right-side toolbar icon (PNG, current visible range, current
+selected signals).
 
-- PNG
-- Current visible range
-- Current selected signals
-
-Advanced export options can be hidden in the export dialog.
+- No save dialog. The PNG is written to the app-managed `exports/png/` directory;
+  the user does not choose the destination and it is never saved to Downloads.
+- Success is reported as a short status (the saved file name only — not the full
+  path).
 
 ## History
 
-History should be automatic.
+History is not implemented and is out of scope for now.
 
-Do not require the user to press Save View.
+Do not add a Save View button; if view persistence is ever added it must be
+automatic, not a manual action.
 
 ## Naming
 

@@ -4,7 +4,7 @@ Local desktop tool for offline CAN log analysis.
 
 The app reads BLF / ASC / CSV CAN logs and DBC files, decodes CAN frames into signals, and displays selected signals as vertically stacked timeline lanes.
 
-This repository currently contains a Python backend prototype and a minimal Tauri + React frontend skeleton.
+This repository contains a Python backend (CAN log decoding, caching, and querying) and a Tauri + React + TypeScript desktop frontend (search-first signal selection and an interactive stacked-lane timeline with PNG export).
 
 ## Purpose
 
@@ -74,9 +74,9 @@ History and decode cache are separate:
 - [UI Policy](docs/ui_policy.md)
 - [Task Plan](docs/task_plan.md)
 
-## Backend Prototype
+## Backend
 
-Phase 1 provides a CLI-only Python backend prototype. It uses the fixed bundled DBC at `backend/resources/default.dbc`; there is intentionally no `--dbc` option yet.
+The Python backend exposes a CLI (`decode`, `inspect`, `query`) used by the desktop app. It uses the fixed bundled DBC at `backend/resources/default.dbc`; there is intentionally no `--dbc` option.
 
 Create and install backend dependencies in a Python virtual environment:
 
@@ -162,9 +162,9 @@ Run tests:
 .venv/bin/python -m pytest
 ```
 
-## Frontend Skeleton
+## Frontend
 
-Phase 2 provides a minimal Tauri + React + TypeScript skeleton that opens a CAN log file, creates or reuses an internal decoded cache, and calls the backend query CLI through Tauri commands.
+A Tauri + React + TypeScript desktop app that opens a CAN log file, creates or reuses an internal decoded cache, and calls the backend CLI through Tauri commands. It provides search-first signal selection and an interactive stacked-lane timeline.
 
 Development prerequisites:
 
@@ -209,6 +209,12 @@ Install Rust with rustup before running Tauri:
 rustup default stable
 ```
 
+On macOS, if `cargo`/`rustc` are installed via rustup but not on the current shell's `PATH`, add them before running Tauri:
+
+```sh
+export PATH="$HOME/.cargo/bin:$PATH"
+```
+
 The Tauri commands call the backend CLI. In development, set the Python interpreter explicitly so the app does not depend on an activated shell:
 
 macOS / Linux / WSL:
@@ -230,27 +236,25 @@ For future packaging, `CAN_LOG_VIEWER_BACKEND` can point to a bundled backend ex
 
 The current frontend flow is:
 
-1. Open a `.blf`, `.asc`, or `.csv` CAN log file.
-2. Decode the log through `python3 -m backend decode --log <log> --out <cache>`.
-3. Reuse the internal cache on later opens when the same log path, size, and modified time match.
-4. Inspect signals through `python3 -m backend inspect --cache <cache>`.
-5. Search signals by signal name, message name, or CAN ID.
-6. Select signals from the list.
-7. Select a visible `session_time` range by dragging on the timeline. Double-click the timeline or use Fit All to return to the full range.
-8. Query selected signals through `python3 -m backend query --cache <cache> --signals <signals> --start <start> --end <end> --max-points-per-signal 5000`.
-9. Export the currently visible timeline area as PNG with Export.
+1. Open a `.blf`, `.asc`, or `.csv` CAN log file. Decoding uses the fixed bundled `default.dbc`; there is no DBC picker.
+2. The app creates or reuses an internal decode cache (same log path, size, and modified time → reuse). The user never chooses the cache directory.
+3. Search signals by signal name, message name, or CAN ID, and click results to add them (up to 5 displayed signals).
+4. Inspect signals as vertically stacked lanes: points on a shared `session_time` (seconds) axis with grid lines.
+5. Select a visible range by dragging on the plot area. Double-click the timeline, or the Fit All toolbar icon, returns to the full range.
+6. Click the plot to place the persistent cursor bar; each lane shows that signal's value at the cursor time in the lane's top-right (enum label preferred, else value + unit, `-` if none before the cursor).
+7. Hover a point for a tooltip (signal name, session_time, value, enum label, unit — no file path).
+8. Reorder lanes by dragging a lane header; remove a signal by dragging its header onto the trash drop zone that appears during the drag.
+9. Export the timeline as PNG with the Export toolbar icon (see below).
 
-After Open Log, the top bar shows only the opened log basename, for example `sample.blf`. It does not show the full path, cache path, signal count, or time range.
+The backend is reached through Tauri commands (`decode_log`, `inspect_cache`, `query_cache`, `export_timeline_png`), which run the backend CLI; range queries request only the selected signals and visible range with `--max-points-per-signal 5000`.
 
-PNG Export currently saves only the timeline area. The Signals pane, top toolbar, and opened filename are not included in the image. The export includes the current visible range, selected lanes, points, time axis, grid, and cursor bar.
+The top bar shows Open Log, the opened log basename (for example `sample.blf`), a discreet warning/status area, and the Fit All and Export icon buttons on the right. It does not show the full path, cache path, signal count, or time range.
 
-Not implemented yet:
+### PNG Export
 
-- Save View
-- PDF export
-- CSV export
-- Playback controls
-9. Render selected signals as simple vertically stacked timeline lanes.
+Export is a single toolbar icon click — there is **no save dialog**. The PNG is written into the app-managed export directory `app_data_root()/exports/png/` (in development, `<repo root>/exports/png/`; the same `app_data_root()` that holds the decode cache). The file name is `<log_basename_without_ext>_<YYYYMMDD_HHMMSS>_timeline.png` (falling back to `timeline_<YYYYMMDD_HHMMSS>.png` when the basename is unavailable); unsafe characters are replaced and same-name collisions get a `_001`, `_002`, … suffix so existing files are never overwritten. On success the status shows `Exported <file name>` (not the full path).
+
+The image contains only the timeline area: lanes, points, the time axis, grid, cursor bar, per-lane cursor values, and the current lane order. It excludes the top bar, Signals pane, hover tooltip, and the trash drop zone.
 
 For local UI testing without a real BLF, generate and open the sample log:
 
@@ -261,13 +265,16 @@ CAN_LOG_VIEWER_PYTHON=.venv/bin/python npm run tauri -- dev
 
 Then choose `samples/sample.blf` from Open Log. The app writes an internal cache under `cache/logs/<hash>` and proceeds to signal search and timeline display.
 
-Current frontend limitations:
+Not implemented (intentionally out of scope for now):
 
 - Opens one log file at a time.
-- Does not expose DBC selection.
-- Does not implement PNG export.
-- Does not implement Save View or history.
-- Does not implement playback, playback speed, or real-time cursor UI.
+- No DBC selection UI and no `--dbc` CLI option (fixed `default.dbc`).
+- No Save View, view-metadata save, session restore, or history.
+- No history/cache ring buffer or decode-cache LRU cleanup.
+- No PDF or CSV export.
+- No playback, playback speed, or real-time cursor UI.
+- No lane-height drag resizing.
+- Signal-selection history (re-suggesting recently used signals) is a planned Should item, not yet implemented.
 
 Planned distribution targets:
 

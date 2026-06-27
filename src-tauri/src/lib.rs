@@ -1,3 +1,4 @@
+use chrono::Local;
 use serde_json::Value;
 use std::env;
 use std::fs;
@@ -56,14 +57,78 @@ fn query_cache(
     ])
 }
 
+// Export a timeline PNG into the app-managed exports/png directory. The frontend
+// only supplies the rendered bytes and the opened log's name; this command owns
+// the output location and the file name (sanitize + timestamp + collision
+// suffix) so the user is never asked to choose a destination. Returns the saved
+// file name (not the full path) for a brief status message.
 #[tauri::command]
-fn save_png(path: String, bytes: Vec<u8>) -> Result<(), String> {
-    let path = PathBuf::from(path);
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)
-            .map_err(|error| format!("failed to create export directory {}: {}", parent.display(), error))?;
+fn export_timeline_png(log_file_name: String, bytes: Vec<u8>) -> Result<String, String> {
+    let dir = export_png_dir();
+    fs::create_dir_all(&dir)
+        .map_err(|error| format!("failed to create export directory {}: {}", dir.display(), error))?;
+
+    let timestamp = Local::now().format("%Y%m%d_%H%M%S").to_string();
+    let stem = sanitize_filename(file_stem(&log_file_name));
+    let base = if stem.is_empty() {
+        // Fallback when the log basename is unavailable / fully sanitized away.
+        format!("timeline_{timestamp}")
+    } else {
+        format!("{stem}_{timestamp}_timeline")
+    };
+
+    let path = unique_export_path(&dir, &base);
+    fs::write(&path, bytes).map_err(|error| format!("failed to save PNG {}: {}", path.display(), error))?;
+
+    Ok(path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .map(str::to_string)
+        .unwrap_or(base))
+}
+
+fn export_png_dir() -> PathBuf {
+    app_data_root().join("exports").join("png")
+}
+
+fn file_stem(log_file_name: &str) -> String {
+    Path::new(log_file_name)
+        .file_stem()
+        .and_then(|stem| stem.to_str())
+        .unwrap_or("")
+        .to_string()
+}
+
+// Replace characters that are unsafe in file names across platforms, collapse
+// whitespace to underscores, and trim stray edge underscores.
+fn sanitize_filename(value: String) -> String {
+    value
+        .chars()
+        .map(|character| match character {
+            '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|' => '_',
+            other if other.is_whitespace() || other.is_control() => '_',
+            other => other,
+        })
+        .collect::<String>()
+        .trim_matches('_')
+        .to_string()
+}
+
+// Pick a non-existing path: `<base>.png`, then `<base>_001.png`, etc. Existing
+// files are never overwritten.
+fn unique_export_path(dir: &Path, base: &str) -> PathBuf {
+    let first = dir.join(format!("{base}.png"));
+    if !first.exists() {
+        return first;
     }
-    fs::write(&path, bytes).map_err(|error| format!("failed to save PNG {}: {}", path.display(), error))
+    let mut suffix = 1u32;
+    loop {
+        let candidate = dir.join(format!("{base}_{suffix:03}.png"));
+        if !candidate.exists() {
+            return candidate;
+        }
+        suffix += 1;
+    }
 }
 
 fn run_backend(args: Vec<String>) -> Result<Value, String> {
@@ -185,6 +250,15 @@ fn repo_root() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from("."))
 }
 
+// Single source of truth for the writable, app-managed root. Both the decode
+// cache (cache/) and PNG exports (exports/png/) live under here. In development
+// this is the repo root; for distribution, change only this function to an OS
+// app-data / writable working directory and cache + exports move together,
+// without relying on the (possibly read-only) executable directory.
+fn app_data_root() -> PathBuf {
+    repo_root()
+}
+
 fn normalize_log_path(path: PathBuf) -> Result<PathBuf, String> {
     let extension = path
         .extension()
@@ -209,7 +283,7 @@ fn cache_path_for_log(log_path: &Path) -> Result<PathBuf, String> {
         .unwrap_or(0);
 
     let cache_key = stable_cache_key(log_path, metadata.len(), modified);
-    Ok(repo_root().join("cache").join("logs").join(cache_key))
+    Ok(app_data_root().join("cache").join("logs").join(cache_key))
 }
 
 fn can_reuse_cache(cache_path: &Path, log_path: &Path) -> bool {
@@ -249,7 +323,7 @@ fn stable_cache_key(log_path: &Path, size: u64, modified: u128) -> String {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![decode_log, inspect_cache, query_cache, save_png])
+        .invoke_handler(tauri::generate_handler![decode_log, inspect_cache, query_cache, export_timeline_png])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

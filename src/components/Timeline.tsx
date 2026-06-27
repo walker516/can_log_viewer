@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import type { RefObject } from "react";
+import { useCallback, useEffect, useState } from "react";
+import type { PointerEvent as ReactPointerEvent, RefObject } from "react";
 import type { QueryResponse, SignalIndexItem } from "../types";
 import type { TimelineView } from "../hooks/useTimelineView";
 import type { SignalSelection } from "../hooks/useSignalSelection";
@@ -14,38 +14,93 @@ interface TimelineProps {
   selection: SignalSelection;
   signalByName: Map<string, SignalIndexItem>;
   query: QueryResponse | null;
-  hasInspect: boolean;
 }
 
-// Timeline panel: a thin range bar (Fit All + missing-signal note) over the
-// plotting area. Lanes share the remaining height evenly.
-export function Timeline({ timelineRef, view, selection, signalByName, query, hasInspect }: TimelineProps) {
+// Timeline panel: a thin bar above the plotting area that shows the missing-
+// signal note and, while a lane header is being dragged, a trash drop zone for
+// removing a signal. Lanes share the remaining height evenly.
+export function Timeline({ timelineRef, view, selection, signalByName, query }: TimelineProps) {
   const bodyHeight = useBodyHeight(timelineRef);
-  const { selectedSignals, draggedSignal, setDraggedSignal, reorderSignal } = selection;
+  const { selectedSignals, reorderSignal, removeSignal } = selection;
+
+  // Pointer-based lane drag (HTML5 drag-and-drop does not work in the WebKit
+  // WebView). `drag` is the signal being dragged; the drop target is resolved
+  // from the element under the pointer during the move.
+  const [drag, setDrag] = useState<string | null>(null);
+  const [overTrash, setOverTrash] = useState(false);
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
 
   const laneCount = Math.min(selectedSignals.length, MAX_DISPLAY_SIGNALS);
   const laneHeight = computeLaneHeight(bodyHeight, laneCount);
+  const isDraggingLane = drag !== null;
 
-  const handleDrop = (target: string) => {
-    if (draggedSignal) {
-      reorderSignal(draggedSignal, target);
-    }
-    setDraggedSignal(null);
-  };
+  // Self-contained pointer drag: window listeners are wired on header pointerdown
+  // and torn down on up/cancel. A small movement threshold means a plain header
+  // click never starts a drag (no trash-zone flicker, no accidental reorder).
+  const handleHeaderPointerDown = useCallback(
+    (signalName: string, event: ReactPointerEvent) => {
+      // Keep the gesture off the plot area so it never starts a range selection
+      // or moves the cursor; preventDefault avoids text selection while dragging.
+      event.stopPropagation();
+      event.preventDefault();
+
+      const startX = event.clientX;
+      const startY = event.clientY;
+      let active = false;
+      let trashHit = false;
+      let targetHit: string | null = null;
+
+      const onMove = (move: PointerEvent) => {
+        if (!active) {
+          if (Math.hypot(move.clientX - startX, move.clientY - startY) < 5) {
+            return;
+          }
+          active = true;
+          setDrag(signalName);
+        }
+        const element = document.elementFromPoint(move.clientX, move.clientY);
+        trashHit = Boolean(element?.closest(".trash-zone"));
+        const laneElement = element?.closest("[data-lane-signal]") as HTMLElement | null;
+        const target = trashHit ? null : laneElement?.dataset.laneSignal ?? null;
+        targetHit = target && target !== signalName ? target : null;
+        setOverTrash(trashHit);
+        setDropTarget(targetHit);
+      };
+      const cleanup = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", onCancel);
+        setDrag(null);
+        setOverTrash(false);
+        setDropTarget(null);
+      };
+      const onUp = () => {
+        if (active) {
+          if (trashHit) {
+            removeSignal(signalName);
+          } else if (targetHit) {
+            reorderSignal(signalName, targetHit);
+          }
+        }
+        cleanup();
+      };
+      const onCancel = () => cleanup();
+
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onCancel);
+    },
+    [removeSignal, reorderSignal]
+  );
+
+  const hasMissing = Boolean(query?.missing_signals.length);
 
   return (
     <section className="timeline-panel">
-      <div className="range-bar">
-        <div className="range-actions">
-          <button className="text-action" type="button" onClick={view.fitAll} disabled={!hasInspect}>
-            Fit All
-          </button>
-          {query?.missing_signals.length ? (
-            <span className="inline-warning">Missing: {query.missing_signals.join(", ")}</span>
-          ) : null}
-        </div>
-      </div>
-
+      {/* No standalone header row: the timeline body fills the panel so its top
+          aligns with the Signals pane. The trash zone and missing-signal note
+          float over the plot (and are stripped from the PNG via export-exclude),
+          so they take no permanent vertical space. */}
       <div
         className="timeline-body"
         ref={timelineRef}
@@ -58,6 +113,18 @@ export function Timeline({ timelineRef, view, selection, signalByName, query, ha
         <TimeAxis ticks={view.ticks} start={view.start} end={view.end} hasRange={view.hasRange} />
         {view.hasRange ? <div className="time-cursor" style={{ left: view.cursorLeft }} /> : null}
         {view.dragSelection ? <SelectionOverlay startX={view.dragSelection.startX} endX={view.dragSelection.endX} /> : null}
+        {isDraggingLane || hasMissing ? (
+          <div className="timeline-overlay export-exclude">
+            {isDraggingLane ? (
+              <div className={`trash-zone ${overTrash ? "over" : ""}`}>
+                <TrashIcon />
+                <span>Drop here to remove</span>
+              </div>
+            ) : (
+              <span className="inline-warning">Missing: {query?.missing_signals.join(", ")}</span>
+            )}
+          </div>
+        ) : null}
         <div className="timeline-lanes" style={{ gap: LANE_GAP }}>
           {selectedSignals.length === 0 ? (
             <div className="empty-state">Select up to {MAX_DISPLAY_SIGNALS} signals.</div>
@@ -69,12 +136,12 @@ export function Timeline({ timelineRef, view, selection, signalByName, query, ha
                 points={query?.signals[signalName] ?? []}
                 start={view.start}
                 end={view.end}
+                cursorTime={view.cursorTime}
                 ticks={view.ticks}
                 laneHeight={laneHeight}
-                isDragged={draggedSignal === signalName}
-                onDragStart={setDraggedSignal}
-                onDropSignal={handleDrop}
-                onDragEnd={() => setDraggedSignal(null)}
+                isDragged={drag === signalName}
+                isDropTarget={dropTarget === signalName}
+                onHeaderPointerDown={handleHeaderPointerDown}
               />
             ))
           )}
@@ -103,6 +170,24 @@ function SelectionOverlay({ startX, endX }: { startX: number; endX: number }) {
   const left = Math.min(startX, endX);
   const width = Math.abs(endX - startX);
   return <div className="selection-overlay" style={{ left, width }} />;
+}
+
+function TrashIcon() {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M2.5 4h11M6 4V2.5h4V4M5 4l.5 9h5l.5-9M6.5 6.5v4M9.5 6.5v4" />
+    </svg>
+  );
 }
 
 // Track the timeline body height so lanes can divide it evenly as it resizes.
