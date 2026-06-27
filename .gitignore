@@ -1,0 +1,43 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Node / frontend
+node_modules/
+dist/
+build/
+.vite/
+
+# Tauri
+src-tauri/target/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# Python build
+*.egg-info/
+dist-python/
+build-python/
+
+# Logs / cache / generated data
+cache/
+history/
+exports/
+*.parquet
+*.duckdb
+
+# CAN logs / database files
+*.blf
+*.asc
+*.dbc
+*.mf4
+*.mdf
+*.csv
+
+# IDE
+.vscode/
+.idea/
