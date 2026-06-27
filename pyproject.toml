@@ -1,0 +1,21 @@
+[project]
+name = "can-log-viewer-backend-prototype"
+version = "0.1.0"
+description = "Phase 1 backend prototype for offline CAN log decoding."
+requires-python = ">=3.11"
+dependencies = [
+  "cantools>=41.0",
+  "python-can>=4.6",
+  "pyarrow>=18.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.setuptools.package-data]
+"backend.resources" = ["*.dbc"]

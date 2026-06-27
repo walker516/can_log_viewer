@@ -2,66 +2,72 @@
 
 ## Basic Direction
 
-The UI should be modern but simple.
+The UI should be modern, simple, and optimized for offline timeline inspection.
 
-This is not a CANalyzer clone with many toolbars. It is an offline timeline analysis viewer.
+This is not a real-time player and not a full CANalyzer-style workspace. Avoid complex dashboards, dense toolbars, and brand-heavy screens.
 
 ## Main Flow
 
-The main flow should be:
+1. Open logs and DBC files.
+2. Search signals.
+3. Select signals.
+4. Inspect the timeline.
+5. Export the current timeline as PNG.
 
-1. Open logs and DBC
-2. Search signal
-3. Select signal
-4. Inspect timeline
-5. Export PNG
+## Top-Level Actions
 
-## Button Policy
+Visible top-level actions should be minimal.
 
-Visible top-level buttons should be minimal.
-
-Preferred visible buttons:
+Preferred visible actions:
 
 - Open
 - Export
 
-Do not add top-level buttons for:
+Avoid top-level buttons for:
 
 - Save View
 - Play
 - Pause
 - Speed
+- Real-time cursor
 - Zoom In
 - Zoom Out
 - Reset Zoom
 - Cache Clear
 - History Save
 
-Those actions should be automatic, mouse-based, hidden in context menus, or placed in settings if needed.
+These actions should be automatic, mouse-based, hidden in context menus, or placed in settings if needed.
 
 ## Layout
 
 Preferred layout:
 
-- Left: signal search and selected signals
-- Center: timeline lanes
-- Top of timeline: overview mini map
-- Optional right drawer: signal details
+- Left: signal search and selected signal tags
+- Center: vertically stacked timeline lanes
+- Top of timeline area: optional overview / range mini map
+- Optional right drawer: signal details or warnings
+
+Do not make the first screen a marketing or landing page. The first screen should be the usable analysis workspace.
 
 ## Signal Selection
 
-- Search results can be clicked to add or remove signals
-- Selected signals are shown as tags
-- Tags have a small × for removal
-- Selected signal lanes can be reordered by drag and drop
+- Search results can be clicked to add signals.
+- Selected signals are shown as tags.
+- Tags provide the removal affordance.
+- Selected signal lanes may be reordered by drag and drop when implemented.
+- Do not use a large always-visible signal management toolbar.
 
 ## Timeline Interaction
+
+Preferred interactions:
 
 - Mouse wheel: zoom
 - Drag: pan
 - Range drag: select range
-- Double click: fit or reset
+- Double click: fit or reset if needed
 - Context menu: advanced actions
+
+Do not add playback controls or playback speed controls.
 
 ## Export
 
@@ -85,7 +91,8 @@ Do not spend time on product naming or branding.
 
 Use neutral labels such as:
 
-- Log Viewer
 - CAN Log Viewer
 - Timeline
 - Signals
+- History
+- Warnings

@@ -1,0 +1,153 @@
+.sidebar {
+  display: flex;
+  flex: 0 0 320px;
+  flex-direction: column;
+  width: 320px;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border-right: 1px solid #d6dce2;
+  background: #fbfcfd;
+}
+
+.sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 38px;
+  padding: 0 8px 0 14px;
+  color: #5f6d7a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pane-toggle,
+.sidebar-tab {
+  border: 0;
+  color: #596875;
+  background: transparent;
+  cursor: pointer;
+}
+
+.pane-toggle {
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  font-size: 20px;
+}
+
+.pane-toggle:hover,
+.sidebar-tab:hover {
+  background: #e8eef3;
+}
+
+.sidebar-tab {
+  display: grid;
+  flex: 0 0 36px;
+  grid-template-rows: 24px 1fr;
+  align-items: center;
+  justify-items: center;
+  width: 36px;
+  height: 100%;
+  min-height: 0;
+  border-right: 1px solid #d6dce2;
+  background: #fbfcfd;
+}
+
+.sidebar-tab span:last-child {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.search-block {
+  flex: 0 0 auto;
+  padding: 0 14px 14px;
+}
+
+.search-block input {
+  width: 100%;
+  height: 34px;
+  border: 1px solid #c9d1da;
+  border-radius: 6px;
+  padding: 0 10px;
+  color: #1f2933;
+  background: #ffffff;
+}
+
+.selected-tags {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 118px;
+  min-height: 40px;
+  overflow-y: auto;
+  padding: 0 14px 12px;
+}
+
+.signal-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  height: 28px;
+  border: 1px solid #b8c4cf;
+  border-radius: 6px;
+  padding: 0 8px;
+  color: #264150;
+  background: #e8eef3;
+  cursor: pointer;
+}
+
+.signal-tag span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signal-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 4px 8px 12px;
+}
+
+.signal-row {
+  display: grid;
+  width: 100%;
+  border: 0;
+  border-radius: 6px;
+  padding: 9px 10px;
+  text-align: left;
+  color: #27323c;
+  background: transparent;
+  cursor: pointer;
+}
+
+.signal-row:hover {
+  background: #eef3f6;
+}
+
+.signal-row.selected {
+  background: #dfeaf2;
+}
+
+.signal-name {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signal-meta {
+  overflow: hidden;
+  margin-top: 3px;
+  color: #72808e;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

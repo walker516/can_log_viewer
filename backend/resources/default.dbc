@@ -1,0 +1,197 @@
+VERSION ""
+
+
+NS_ :
+	NS_DESC_
+	CM_
+	BA_DEF_
+	BA_
+	VAL_
+	CAT_DEF_
+	CAT_
+	FILTER
+	BA_DEF_DEF_
+	EV_DATA_
+	ENVVAR_DATA_
+	SGTYPE_
+	SGTYPE_VAL_
+	BA_DEF_SGTYPE_
+	BA_SGTYPE_
+	SIG_TYPE_REF_
+	VAL_TABLE_
+	SIG_GROUP_
+	SIG_VALTYPE_
+	SIGTYPE_VALTYPE_
+	BO_TX_BU_
+	BA_DEF_REL_
+	BA_REL_
+	BA_DEF_DEF_REL_
+	BU_SG_REL_
+	BU_EV_REL_
+	BU_BO_REL_
+	SG_MUL_VAL_
+
+BS_:
+
+BU_: Vector__XXX
+
+
+BO_ 256 VehicleStatus: 8 Vector__XXX
+ SG_ Speed : 0|16@1+ (0.1,0) [0|250] "km/h" Vector__XXX
+ SG_ Gear : 16|8@1+ (1,0) [0|5] "" Vector__XXX
+ SG_ WirelessSystemState : 24|8@1+ (1,0) [0|10] "" Vector__XXX
+ SG_ WorkState : 32|8@1+ (1,0) [0|10] "" Vector__XXX
+ SG_ BumpDetected : 40|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ LiftDetected : 41|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ WorkMotorLock : 42|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ WheelMotorLock : 43|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ SlopeDetected : 44|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ RetryRunCommand : 45|1@1+ (1,0) [0|1] "" Vector__XXX
+
+BO_ 272 ObstacleStatus: 8 Vector__XXX
+ SG_ AvoidanceState : 0|4@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ ObstacleType : 4|4@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ AvoidanceRequest : 8|4@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ AvoidanceResult : 12|4@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ BaseSystemEvent : 16|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ ErrorCode : 24|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ UnknownObstacleState : 32|4@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ UnknownObstacleIslandCount : 36|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ CreateUnknownObstacleIslandRequest : 44|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ CreateUnknownObstacleIslandResult : 45|4@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ UncalibratedAvoidanceActive : 49|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ SlopeAngle : 50|10@1+ (0.1,0) [0|90] "deg" Vector__XXX
+
+BO_ 288 LocalizationStatus: 8 Vector__XXX
+ SG_ LocalizationMode : 0|4@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ FusionMode : 4|4@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ RTKStatus : 8|4@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ GNSSFixType : 12|4@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ ReferenceAreaId : 16|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ ReferencePathId : 24|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ ReferenceUpdateCounter : 32|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ SetNewReferenceReason : 40|4@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ IsInArea : 44|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ PositionAccuracyState : 45|4@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ CurrentAreaId : 49|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ ReferenceValid : 57|1@1+ (1,0) [0|1] "" Vector__XXX
+
+BO_ 289 LocalizationMetrics: 8 Vector__XXX
+ SG_ PositionX : 0|16@1+ (0.1,-1000) [-1000|1000] "m" Vector__XXX
+ SG_ PositionY : 16|16@1+ (0.1,-1000) [-1000|1000] "m" Vector__XXX
+ SG_ Heading : 32|12@1+ (0.1,0) [0|360] "deg" Vector__XXX
+ SG_ YawRate : 44|10@1+ (0.01,-5) [-5|5] "rad/s" Vector__XXX
+ SG_ GNSSVelCov : 54|10@1+ (0.01,0) [0|10] "" Vector__XXX
+
+BO_ 290 LocalizationCovariance: 8 Vector__XXX
+ SG_ EKFPosCovX : 0|12@1+ (0.01,0) [0|40] "" Vector__XXX
+ SG_ EKFPosCovY : 12|12@1+ (0.01,0) [0|40] "" Vector__XXX
+ SG_ EKFHeadingCov : 24|12@1+ (0.001,0) [0|4] "" Vector__XXX
+ SG_ DRDistance : 36|16@1+ (0.1,0) [0|5000] "m" Vector__XXX
+ SG_ NearestAreaId : 52|8@1+ (1,0) [0|255] "" Vector__XXX
+
+BO_ 304 PathPlanningStatus: 8 Vector__XXX
+ SG_ PathPlanType : 0|4@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ PathPlanState : 4|4@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ PathPlanResult : 8|4@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ AreaId : 12|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ DestinationAreaId : 20|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ GoalAreaId : 28|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ CurrentInArea : 36|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ GoalInArea : 37|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ PathId : 38|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ PathPointIndex : 46|10@1+ (1,0) [0|1023] "" Vector__XXX
+ SG_ IsFinalPoint : 56|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ IsPathPlanDone : 57|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ ReplanReason : 58|4@1+ (1,0) [0|15] "" Vector__XXX
+
+BO_ 305 PathPlanningProgress: 8 Vector__XXX
+ SG_ PathPointX : 0|16@1+ (0.1,-1000) [-1000|1000] "m" Vector__XXX
+ SG_ PathPointY : 16|16@1+ (0.1,-1000) [-1000|1000] "m" Vector__XXX
+ SG_ OutsidePathGuardState : 32|4@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ OutsidePathGuardAction : 36|4@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ ParallelProgressStep : 40|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ WorkProgressStep : 48|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ ParallelProgressStepDiffUnknownObstacle : 56|8@1+ (1,0) [0|255] "" Vector__XXX
+
+BO_ 306 PathPlanningRestore: 8 Vector__XXX
+ SG_ RestoredPathPointValid : 0|1@1+ (1,0) [0|1] "" Vector__XXX
+ SG_ RestoreAreaId : 1|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ PPSHintState : 9|4@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ PPSReachedFlag : 13|1@1+ (1,0) [0|1] "" Vector__XXX
+
+BO_ 320 PathFollowerStatus: 8 Vector__XXX
+ SG_ PathFollowerState : 0|4@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ StopReason : 4|4@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ TurnDirection : 8|4@1+ (1,0) [0|15] "" Vector__XXX
+ SG_ CurrentPathId : 12|8@1+ (1,0) [0|255] "" Vector__XXX
+ SG_ TargetPathPointIndex : 20|10@1+ (1,0) [0|1023] "" Vector__XXX
+ SG_ PathWidth : 30|8@1+ (0.1,0) [0|25] "m" Vector__XXX
+ SG_ PassageRandomOffset : 38|8@1+ (0.01,-1) [-1|1] "m" Vector__XXX
+ SG_ RemainAngle : 46|10@1+ (0.1,0) [0|180] "deg" Vector__XXX
+
+BO_ 321 PathFollowerMetrics: 8 Vector__XXX
+ SG_ TargetVelocity : 0|10@1+ (0.01,0) [0|10] "m/s" Vector__XXX
+ SG_ ActualVelocity : 10|10@1+ (0.01,0) [0|10] "m/s" Vector__XXX
+ SG_ TargetAngularVelocity : 20|10@1+ (0.01,-5) [-5|5] "rad/s" Vector__XXX
+ SG_ ActualAngularVelocity : 30|10@1+ (0.01,-5) [-5|5] "rad/s" Vector__XXX
+ SG_ RemainDistance : 40|12@1+ (0.1,0) [0|400] "m" Vector__XXX
+ SG_ HeadingError : 52|10@1+ (0.01,-5) [-5|5] "rad" Vector__XXX
+
+BO_ 322 PathFollowerPosition: 8 Vector__XXX
+ SG_ TargetPointX : 0|16@1+ (0.1,-1000) [-1000|1000] "m" Vector__XXX
+ SG_ TargetPointY : 16|16@1+ (0.1,-1000) [-1000|1000] "m" Vector__XXX
+ SG_ CurrentPointX : 32|16@1+ (0.1,-1000) [-1000|1000] "m" Vector__XXX
+ SG_ CurrentPointY : 48|16@1+ (0.1,-1000) [-1000|1000] "m" Vector__XXX
+
+BO_ 323 PathFollowerError: 8 Vector__XXX
+ SG_ CrossTrackError : 0|10@1+ (0.01,-5) [-5|5] "m" Vector__XXX
+
+VAL_ 256 Gear 0 "P" 1 "R" 2 "N" 3 "D" 4 "L" ;
+VAL_ 256 WirelessSystemState 0 "Idle" 1 "Mowing" 2 "Avoiding" 3 "Paused" 4 "Error" 5 "Homing" ;
+VAL_ 256 WorkState 0 "Idle" 1 "Working" 2 "Avoiding" 3 "Paused" 4 "Error" 5 "Completed" ;
+VAL_ 256 BumpDetected 0 "Off" 1 "On" ;
+VAL_ 256 LiftDetected 0 "Off" 1 "On" ;
+VAL_ 256 WorkMotorLock 0 "Off" 1 "On" ;
+VAL_ 256 WheelMotorLock 0 "Off" 1 "On" ;
+VAL_ 256 SlopeDetected 0 "Off" 1 "On" ;
+VAL_ 256 RetryRunCommand 0 "Off" 1 "On" ;
+
+VAL_ 272 AvoidanceState 0 "None" 1 "BumpReverse" 2 "BumpTurn" 3 "LiftStop" 4 "MotorLockStop" 5 "SlopeSlow" 6 "UnknownObstacle" 7 "Recovered" ;
+VAL_ 272 ObstacleType 0 "None" 1 "Bump" 2 "Lift" 3 "WorkMotorLock" 4 "WheelMotorLock" 5 "Slope" 6 "UnknownObstacle" ;
+VAL_ 272 AvoidanceRequest 0 "None" 1 "Request" 2 "Cancel" ;
+VAL_ 272 AvoidanceResult 0 "None" 1 "Running" 2 "Success" 3 "Failure" ;
+VAL_ 272 BaseSystemEvent 0 "None" 1 "Bump" 2 "Lift" 3 "WorkMotorLock" 4 "WheelMotorLock" 5 "SlopeHigh" 6 "UnknownObstacle" ;
+VAL_ 272 ErrorCode 0 "None" 10 "WorkMotorLock" 20 "WheelMotorLock" 30 "SlopeTooHigh" ;
+VAL_ 272 UnknownObstacleState 0 "Idle" 1 "Candidate" 2 "CreateRequest" 3 "Created" 4 "Rejected" ;
+VAL_ 272 CreateUnknownObstacleIslandRequest 0 "Off" 1 "On" ;
+VAL_ 272 CreateUnknownObstacleIslandResult 0 "None" 1 "Success" 2 "Failure" ;
+VAL_ 272 UncalibratedAvoidanceActive 0 "Off" 1 "On" ;
+
+VAL_ 288 LocalizationMode 0 "Init" 1 "GNSS" 2 "EKF" 3 "DeadReckoning" ;
+VAL_ 288 FusionMode 0 "None" 1 "GNSSOnly" 2 "GNSS_IMU" 3 "DR" ;
+VAL_ 288 RTKStatus 0 "NoFix" 1 "Single" 2 "Float" 3 "Fixed" ;
+VAL_ 288 GNSSFixType 0 "None" 1 "Fix2D" 2 "Fix3D" 3 "RTKFloat" 4 "RTKFixed" ;
+VAL_ 288 SetNewReferenceReason 0 "None" 1 "Startup" 2 "AreaChanged" 3 "PDHoming" 4 "Recovery" ;
+VAL_ 288 IsInArea 0 "False" 1 "True" ;
+VAL_ 288 PositionAccuracyState 0 "OK" 1 "Warning" 2 "Error" ;
+VAL_ 288 ReferenceValid 0 "False" 1 "True" ;
+
+VAL_ 304 PathPlanType 0 "None" 1 "InArea" 2 "InterArea" 3 "PDHoming" 4 "ReplanToNextPathPoint" 5 "ParallelMowing" ;
+VAL_ 304 PathPlanState 0 "Idle" 1 "Planning" 2 "Following" 3 "Replanning" 4 "Done" ;
+VAL_ 304 PathPlanResult 0 "None" 1 "Success" 2 "Failure" ;
+VAL_ 304 CurrentInArea 0 "False" 1 "True" ;
+VAL_ 304 GoalInArea 0 "False" 1 "True" ;
+VAL_ 304 IsFinalPoint 0 "False" 1 "True" ;
+VAL_ 304 IsPathPlanDone 0 "False" 1 "True" ;
+VAL_ 304 ReplanReason 0 "None" 1 "Deviated" 2 "Obstacle" 3 "Restore" ;
+
+VAL_ 305 OutsidePathGuardState 0 "Inside" 1 "InToOut" 2 "Outside" 3 "OutToIn" 4 "Crossed" ;
+VAL_ 305 OutsidePathGuardAction 0 "None" 1 "Warn" 2 "Stop" 3 "Replan" ;
+VAL_ 306 RestoredPathPointValid 0 "False" 1 "True" ;
+VAL_ 306 PPSHintState 0 "None" 1 "Hinted" 2 "Reached" 3 "Mismatch" ;
+VAL_ 306 PPSReachedFlag 0 "False" 1 "True" ;
+
+VAL_ 320 PathFollowerState 0 "Idle" 1 "Following" 2 "Turning" 3 "Stopped" 4 "Retry" 5 "Completed" ;
+VAL_ 320 StopReason 0 "None" 1 "Obstacle" 2 "Error" 3 "GoalReached" ;
+VAL_ 320 TurnDirection 0 "Straight" 1 "Left" 2 "Right" ;

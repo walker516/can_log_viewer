@@ -1,0 +1,96 @@
+.lane {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid #d6dce2;
+  border-radius: 8px;
+  background: #ffffff;
+  cursor: grab;
+}
+
+.lane.dragging {
+  opacity: 0.55;
+}
+
+.lane:active {
+  cursor: grabbing;
+}
+
+.lane-header {
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px 4px;
+}
+
+.lane-title {
+  font-weight: 700;
+}
+
+.lane-meta {
+  margin-top: 2px;
+  color: #72808e;
+  font-size: 12px;
+}
+
+.lane-plot {
+  display: block;
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+}
+
+.plot-axis {
+  stroke: #d8dee5;
+  stroke-width: 1;
+}
+
+.plot-grid {
+  stroke: #edf1f4;
+  stroke-width: 1;
+}
+
+.plot-line {
+  fill: none;
+  stroke: #1d6f8f;
+  stroke-width: 1.25;
+  opacity: 0.22;
+  vector-effect: non-scaling-stroke;
+}
+
+.plot-line.step {
+  stroke: #9a5a1e;
+}
+
+.plot-point {
+  fill: #1f6f95;
+  stroke: #ffffff;
+  stroke-width: 1.6;
+  vector-effect: non-scaling-stroke;
+}
+
+.plot-empty {
+  fill: #8a96a3;
+  font-size: 13px;
+  dominant-baseline: middle;
+  vector-effect: non-scaling-stroke;
+}
+
+.point-tooltip {
+  position: fixed;
+  z-index: 20;
+  max-width: 320px;
+  border: 1px solid #aeb9c4;
+  border-radius: 6px;
+  padding: 7px 9px;
+  color: #1f2933;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 22px rgba(32, 45, 58, 0.16);
+  font-size: 12px;
+  line-height: 1.45;
+  pointer-events: none;
+}

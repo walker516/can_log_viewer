@@ -2,86 +2,111 @@
 
 ## Purpose
 
-BLF / ASC / CSV のCANログと DBC を読み込み、DBCに基づいてsignalへdecodeし、選択したsignalを縦方向に並べてtimeline表示できるローカルデスクトップアプリを作成する。
+Build a local desktop app for offline CAN log visualization.
 
-主目的は、ログ内の任意範囲を拡大・縮小しながら、複数signalの時系列変化を比較・確認することである。
+The app reads BLF / ASC / CSV CAN logs and DBC files, decodes CAN frames into signals based on the DBC, and visualizes selected signals as vertically stacked timeline lanes.
 
-リアルタイム再生のニーズはない。
+The primary goal is comparing multiple signals over time by zooming, panning, and selecting ranges.
+
+Real-time playback is not required.
 
 ## Supported Inputs
 
-- .blf
-- .asc
-- .csv
-- .dbc
+- BLF CAN logs
+- ASC CAN logs
+- CSV CAN logs
+- DBC files
+
+CSV support should be explicit about expected columns when implemented. Parsing errors must be returned as warnings instead of being hidden silently.
 
 ## Functional Requirements
 
 ### File Loading
 
-- ローカルファイルから .blf / .asc / .csv / .dbc を選択できる
-- 複数ログファイルを選択できる
-- DBCファイルを選択できる
-- 初回decode後はcacheを利用できる
+- Select one or more local CAN log files.
+- Select one or more DBC files.
+- Accept BLF / ASC / CSV logs.
+- Accept DBC databases.
+- Reuse decode cache after initial decode when inputs are unchanged.
 
 ### Log Concatenation
 
-- 複数ログファイルを1つの解析用timelineとして連結できる
-- MVPでは append 方式を優先する
-- session_time と source_time を分離する
-- source_file を保持する
+- Concatenate multiple logs into a single analysis timeline.
+- Use `session_time` for the concatenated timeline.
+- Preserve `source_time` from the original log.
+- Preserve `source_file` from the original log.
+- Do not overwrite source timing information during concatenation.
+
+Initial implementation should prefer append-style concatenation unless a later task explicitly requires source-time alignment.
 
 ### Signal Decode
 
-- DBCに基づいてCAN frameをsignalにdecodeする
-- signal名、message名、CAN ID、unitを保持する
-- enum値がある場合はenum labelを保持する
-- multiplexed signalは可能な範囲で対応する
-- decodeできないframeは警告として集計する
+- Decode CAN frames into signal rows using DBC definitions.
+- Preserve message name, signal name, CAN ID, channel, unit, raw value, physical value, and enum label when available.
+- Build a searchable signal index.
+- Return structured warnings for unknown messages, malformed frames, unsupported CSV rows, and decode errors.
+- Summarize warning counts so large logs do not flood the UI.
 
-### Signal Search
+### Signal Search and Selection
 
-- signal名で検索できる
-- message名で検索できる
-- CAN IDで検索できる
-- 最近使ったsignalを表示できる
+- Search by signal name.
+- Search by message name.
+- Search by CAN ID.
+- Show recently selected signals when useful.
+- Add signals by clicking search results.
+- Remove signals through selected signal tags.
 
 ### Timeline View
 
-- 選択したsignalを 1 signal = 1 lane として縦に表示する
-- 連続値は line 表示する
-- 状態値・enum値は step 表示する
-- zoom / pan / range selection ができる
-- overview mini map を表示できる
-- frontendへ全データを渡さず、表示範囲に応じて取得する
+- Display selected signals as vertically stacked lanes.
+- Use one lane per selected signal.
+- Render continuous numeric values as line plots.
+- Render boolean, state, and enum-like values as step plots.
+- Support mouse-based zoom, pan, and range selection.
+- Request only the selected signals and visible time range from the backend.
+- Downsample on the backend when the number of points is too large.
+- Do not load entire huge logs into the frontend.
 
 ### Export
 
-- 現在表示しているtimelineを PNG 保存できる
-- PNG保存時の表示条件をJSONとして保存できる
-- 保存先はユーザーが選択できる
+- Export the current visible timeline as PNG.
+- Export should use the current visible range and selected signals by default.
+- Save export metadata such as visible range and selected signals.
+- Let users choose the PNG destination.
 
 ### History
 
-- 過去に開いたログ、DBC、選択signal、表示範囲を自動保存する
-- 表示条件を復元できる
-- 件数上限を超えたら古い履歴から削除する
+- Automatically save viewed sessions.
+- Store selected signals, visible ranges, export history, and thumbnails when available.
+- Restore recent sessions.
+- Use a count-based ring buffer.
+- Do not require a manual Save View button.
 
-### Cache
+### Decode Cache
 
-- decode済みデータをcacheできる
-- cache容量上限を超えたら古いcacheから削除する
-- historyとcacheは分離する
+- Cache decoded parquet / duckdb data.
+- Store cache separately from history.
+- Use capacity-based LRU deletion.
+- Make cache entries identifiable by source logs, DBCs, parser options, and relevant file metadata.
 
 ## Non-Requirements
 
-The following features are intentionally out of scope:
+Do not implement unless explicitly requested:
 
-- リアルタイム再生
-- 再生速度変更
-- CAN送信
-- 実機接続
-- クラウド保存
-- ユーザー認証
-- 大量のツールバーボタン
-- ブランド名や製品名の作り込み
+- Real-time playback
+- Playback speed changes
+- Real-time cursor movement
+- CAN bus transmission
+- Online device connection
+- Complex dashboard layout
+- Heavy product branding
+- Cloud upload
+- User authentication
+- Large always-visible toolbars
+
+## Distribution Requirements
+
+- Primary distribution target is Windows exe.
+- If the backend uses Python, package the backend as an executable.
+- Bundle the backend executable with the desktop app.
+- End users must not be required to install Python manually.

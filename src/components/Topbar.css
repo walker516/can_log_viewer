@@ -1,0 +1,52 @@
+.topbar {
+  flex: 0 0 52px;
+  display: grid;
+  grid-template-columns: auto auto minmax(120px, 1fr) minmax(180px, auto);
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  border-bottom: 1px solid #d6dce2;
+  background: #ffffff;
+}
+
+.primary-action {
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid #185a9d;
+  border-radius: 6px;
+  color: #ffffff;
+  background: #2166a7;
+  cursor: pointer;
+}
+
+.secondary-action {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid #c5ced8;
+  border-radius: 6px;
+  color: #334452;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.primary-action:disabled,
+.secondary-action:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.open-file-name {
+  overflow: hidden;
+  color: #596875;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status {
+  overflow: hidden;
+  color: #66717e;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

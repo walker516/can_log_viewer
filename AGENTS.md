@@ -12,6 +12,7 @@ The primary use case is offline log analysis, not real-time playback.
 
 - Do not implement real-time playback.
 - Do not implement playback speed controls.
+- Do not implement real-time cursor movement.
 - Do not add unnecessary toolbar buttons.
 - Keep the UI modern but simple.
 - The main user flow is:
@@ -47,6 +48,7 @@ Preferred architecture:
 Keep backend and frontend responsibilities separated.
 
 Frontend:
+
 - File selection UI
 - Signal search UI
 - Timeline rendering
@@ -54,20 +56,22 @@ Frontend:
 - View state management
 
 Backend:
+
 - Read BLF / ASC / CSV
 - Load DBC
 - Decode CAN messages into signals
 - Build signal index
-- Persist parquet cache
+- Persist parquet / duckdb cache
 - Serve range queries by selected signal and time range
+- Downsample on backend if the number of points is too large
 
 ## Data Model Requirements
 
 The decoded data must preserve both:
 
-- session_time: time on the concatenated analysis timeline
-- source_time: original timestamp in the source log
-- source_file: original log file path or name
+- `session_time`: time on the concatenated analysis timeline
+- `source_time`: original timestamp in the source log
+- `source_file`: original log file path or name
 
 Do not overwrite source timing information when concatenating logs.
 
@@ -76,12 +80,20 @@ Do not overwrite source timing information when concatenating logs.
 Separate history and decode cache.
 
 History:
+
 - Stores viewed sessions, selected signals, visible ranges, export history, and thumbnails.
 - Use count-based ring buffer.
 
 Decode cache:
+
 - Stores decoded parquet / duckdb data.
 - Use capacity-based LRU deletion.
+
+## Distribution Policy
+
+- Target Windows executable distribution.
+- If a Python backend is used, package it as an executable and bundle it with the app.
+- End users must not be required to install Python manually.
 
 ## Coding Guidelines
 
@@ -92,6 +104,14 @@ Decode cache:
 - Do not load entire huge logs into the frontend.
 - Frontend should request only selected signals and visible time range.
 - Downsample on backend if the number of points is too large.
+
+## Required Reading Before Coding
+
+- `README.md`
+- `docs/requirements.md`
+- `docs/architecture.md`
+- `docs/ui_policy.md`
+- `docs/task_plan.md`
 
 ## Do Not Implement Yet
 

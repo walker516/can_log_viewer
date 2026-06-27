@@ -22,6 +22,7 @@ venv/
 *.egg-info/
 dist-python/
 build-python/
+*.spec
 
 # Logs / cache / generated data
 cache/
@@ -29,11 +30,14 @@ history/
 exports/
 *.parquet
 *.duckdb
+*.duckdb.wal
+*.duckdb.tmp
 
 # CAN logs / database files
 *.blf
 *.asc
 *.dbc
+!backend/resources/default.dbc
 *.mf4
 *.mdf
 *.csv
