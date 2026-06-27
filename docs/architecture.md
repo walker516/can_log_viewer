@@ -2,77 +2,94 @@
 
 ## Overview
 
-The app is a local desktop application with a clear split between frontend and backend responsibilities.
-
-Preferred stack:
+The app is a local desktop CAN log viewer with a strict frontend/backend split.
 
 - Desktop shell: Tauri
 - Frontend: React + TypeScript
-- Backend: Python
+- Tauri layer: Rust commands, file dialogs, backend process execution, app data
+  paths, PNG output path ownership
+- Backend: Python CLI
 - CAN log reader: python-can
 - DBC decoder: cantools
-- Cache: parquet + duckdb
-- Timeline rendering: uPlot or Plotly.js
+- Cache format: parquet, with query helpers for selected signals and visible
+  ranges
+- Backend packaging: PyInstaller executable, wired as a Tauri sidecar
 
-The frontend owns interaction and rendering. The backend owns parsing, decoding, caching, querying, and downsampling.
+## Frontend Responsibilities
 
-## Component Responsibilities
+- Open Log UI.
+- Signal search and selection.
+- Lightweight Recent signal display backed by localStorage.
+- Timeline rendering.
+- Range selection, cursor placement, lane reorder, and lane delete interactions.
+- Render the timeline PNG bytes.
 
-### Frontend
+The frontend does not:
 
-Responsibilities:
+- decode logs directly
+- read parquet directly
+- build cache paths
+- build export paths
+- choose PNG destination
+- expose DBC selection
 
-- File selection UI
-- Signal search UI (add-only; selected state shown by signal-list highlight)
-- Timeline rendering, per-lane cursor values, lane reorder, and lane delete via
-  the trash drop zone
-- Range selection (plot-area drag) and cursor placement (plot click)
-- PNG export rendering (the Tauri/Rust layer owns the output path and file name)
-- In-memory view state (no persistence; view auto-save / history are not
-  implemented)
+## Tauri/Rust Responsibilities
 
-The frontend must request only the selected signals and visible time range. It must not load entire large decoded datasets.
+Tauri commands bridge the frontend to local system capabilities:
 
-### Backend
+- `decode_log`: normalize the selected log path, create/reuse cache, run backend
+  `decode` if needed, then run `inspect`
+- `inspect_cache`: development/helper command for inspecting a cache path
+- `query_cache`: run backend `query`
+- `export_timeline_png`: save rendered PNG bytes under app-managed
+  `exports/png`
 
-Responsibilities:
+The Rust layer owns:
 
-- Read BLF / ASC / CSV logs.
-- Load the fixed bundled DBC (`backend/resources/default.dbc`). DBC selection is
-  intentionally not exposed: there is no DBC picker UI and no `--dbc` CLI option.
-- Decode CAN frames into signal rows.
-- Build signal index.
-- Persist raw frame and decoded signal cache.
-- Query selected signals by visible time range.
-- Downsample results when point counts exceed frontend limits.
-- Return structured warnings and decode statistics.
+- backend discovery and process execution
+- app data root resolution
+- decode cache path calculation
+- PNG export directory, filename sanitization, timestamp, and collision suffix
 
-The frontend never builds output paths itself. For PNG export it passes only the
-rendered bytes and the opened log's name to the Tauri layer, which owns the
-output directory and file name (see App-managed paths).
+## Backend Responsibilities
+
+The Python backend exposes a stable CLI:
+
+```sh
+python -m backend decode --log <log> --out <cache>
+python -m backend inspect --cache <cache>
+python -m backend query --cache <cache> --signals Speed,Gear --start 0 --end 10 --max-points-per-signal 5000
+```
+
+The packaged executable keeps the same interface:
+
+```sh
+can-log-viewer-backend decode --log <log> --out <cache>
+can-log-viewer-backend inspect --cache <cache>
+can-log-viewer-backend query --cache <cache> --signals Speed,Gear --start 0 --end 10 --max-points-per-signal 5000
+```
+
+The backend:
+
+- reads BLF / ASC / CSV logs
+- loads the fixed bundled `backend/resources/default.dbc`
+- decodes frames into signal rows
+- writes `meta.json`, `decoded_signals.parquet`, `signal_index.json`,
+  `warnings.json`
+- returns JSON for inspect/query
+- returns structured warnings and summary counts
+
+There is no DBC picker UI and no `--dbc` CLI option.
 
 ## Data Model
 
-### raw_frames
+Decoded signal rows preserve:
 
 | Field | Description |
 | --- | --- |
-| `session_time` | Concatenated analysis time |
-| `source_time` | Original log timestamp |
-| `source_file` | Source log file path or name |
-| `channel` | CAN channel |
-| `can_id` | CAN arbitration ID |
-| `is_extended_id` | Extended ID flag |
-| `dlc` | Data length |
-| `data_hex` | Raw payload |
-
-### decoded_signals
-
-| Field | Description |
-| --- | --- |
-| `session_time` | Concatenated analysis time |
-| `source_time` | Original log timestamp |
-| `source_file` | Source log file path or name |
+| `session_time` | Time on the analysis timeline |
+| `source_time` | Original timestamp from the log |
+| `source_file` | Original source log path/name |
 | `channel` | CAN channel |
 | `can_id` | CAN arbitration ID |
 | `message_name` | DBC message name |
@@ -82,54 +99,31 @@ output directory and file name (see App-managed paths).
 | `unit` | Signal unit |
 | `enum_label` | Enum label if available |
 
-### signal_index
+Signal index entries include signal name, message name, CAN ID, unit,
+value/plot type, sample count, and first/last session time.
 
-| Field | Description |
-| --- | --- |
-| `signal_name` | Signal name |
-| `message_name` | Message name |
-| `can_id` | CAN ID |
-| `unit` | Unit |
-| `value_type` | `numeric`, `enum`, `bool`, or similar |
-| `plot_type` | `line` or `step` |
-| `sample_count` | Available sample count when known |
-| `first_session_time` | First available analysis time |
-| `last_session_time` | Last available analysis time |
+## App-managed Paths
 
-## Log Concatenation
+All app-managed output lives under one root resolved by the Tauri/Rust layer.
 
-Initial merge mode is append.
+Resolution order:
 
-Example:
+1. `CAN_LOG_VIEWER_APP_DATA_ROOT`, if set
+2. Tauri's OS app data directory
 
-- `log_A`: source time `0.0s` to `120.0s`
-- `log_B`: source time `0.0s` to `90.0s`
+Conceptual OS locations:
 
-Result:
+- Windows: `%LOCALAPPDATA%/<app-name>/`
+- macOS: `~/Library/Application Support/<app-name>/`
+- Linux: Tauri app data / XDG data directory equivalent
 
-- `log_A` session time: `0.0s` to `120.0s`
-- `log_B` session time: `120.0s` to `210.0s`
-
-The original `source_time` and `source_file` values must be preserved.
-
-## App-managed paths
-
-All app-managed output lives under a single writable root, `app_data_root()`,
-decided in one place in the Tauri/Rust layer. Both the decode cache and PNG
-exports derive from it, so moving the root (for distribution) moves them
-together without relying on the (possibly read-only) executable directory.
-
-- Current (development): `app_data_root()` is the repository root.
-- Target (distribution): an OS app-data / writable working directory. Only the
-  one `app_data_root()` function changes; cache and exports follow.
-
-Current layout:
+Layout:
 
 ```text
-<app_data_root()>/
+<app_data_root>/
   cache/
     logs/
-      <cache_key>/
+      <hash>/
         meta.json
         decoded_signals.parquet
         signal_index.json
@@ -139,74 +133,70 @@ Current layout:
       <log_basename>_<YYYYMMDD_HHMMSS>_timeline.png
 ```
 
-Lifetimes differ by purpose:
+Cache and exports share a root but have different lifetimes:
 
-- **Decode cache** (`cache/`) is internal, regenerable data keyed by source log
-  metadata; the user never selects its location. Capacity-based LRU cleanup is a
-  later task (not yet implemented).
-- **PNG exports** (`exports/png/`) are user-facing artifacts; they are written
-  without a save dialog and kept (collision-suffixed, never overwritten), not
-  garbage-collected.
+- Cache is internal, regenerable data.
+- PNG exports are user-facing artifacts and are not automatically deleted.
 
-## Cache Layout (target)
+Old repo-root cache/export artifacts are not migrated automatically.
 
-The fuller target layout below is aspirational for packaging; history and the
-ring buffer / LRU are not implemented yet (see Out of scope in the task plan).
-Use the OS-specific local app data directory.
+## Backend Discovery
 
-Example on Windows:
+The Tauri/Rust layer discovers the backend in this order:
+
+1. `CAN_LOG_VIEWER_BACKEND`, if set
+2. bundled Tauri sidecar executable
+3. debug/dev builds only: `CAN_LOG_VIEWER_PYTHON`
+4. debug/dev builds only: `python3`, then `python`
+
+Packaged/release builds do not fall back to user-installed Python. End users
+should not need Python, a venv, or backend dependencies.
+
+Executable candidates receive backend CLI arguments directly. Python fallback
+uses `python -m backend ...` and runs with the repository root as working
+directory for local development.
+
+Development caveat: the bundled sidecar is intentionally ahead of
+`CAN_LOG_VIEWER_PYTHON` in the discovery order. If Tauri has copied
+`can-log-viewer-backend` into `src-tauri/target/debug/`, a dev run with
+`CAN_LOG_VIEWER_PYTHON=.venv/bin/python` may still use the sidecar. This is
+correct for sidecar smoke coverage, but PyInstaller onefile startup can make
+decode/inspect/query feel slower than the Python module fallback because every
+backend call starts a new process. To force executable testing, use
+`CAN_LOG_VIEWER_BACKEND`. For normal macOS/Linux/WSL development with the
+Python module backend, use `scripts/dev_tauri_python.sh`; it points
+`CAN_LOG_VIEWER_BACKEND` at a small shim that runs
+`CAN_LOG_VIEWER_PYTHON -m backend`.
+
+## Backend Executable and Sidecar
+
+`scripts/build_backend_executable.py` builds the backend with PyInstaller.
+
+Outputs:
 
 ```text
-%LOCALAPPDATA%/<app>/
-  history/
-    sessions.json
-    thumbnails/
-  decode-cache/
-    <cache_key>/
-      meta.json
-      raw_frames.parquet
-      decoded_signals.parquet
-      signal_index.json
-      query.duckdb
-  exports/
+dist-python/backend/can-log-viewer-backend
+dist-python/backend/can-log-viewer-backend-<target-triple>
 ```
 
-History and decode cache are intentionally separate.
+On Windows the executable has `.exe`.
 
-History (planned, not implemented):
+The target-triple copy is used by Tauri `bundle.externalBin`. The fixed
+`default.dbc` is included as PyInstaller data and remains resolved through the
+backend's resource loading path.
 
-- Stores viewed sessions, selected signals, visible ranges, export history, and thumbnails.
-- Uses a count-based ring buffer.
+## Current Packaging Status
 
-Decode cache:
+Implemented:
 
-- Stores decoded parquet / duckdb data.
-- Capacity-based LRU deletion is planned (not implemented).
+- PyInstaller backend executable prototype.
+- Tauri sidecar wiring.
+- Tauri app data root for cache/export.
 
-## Query Flow
+Remaining:
 
-1. Frontend sends selected signal identifiers and visible `session_time` range.
-2. Backend queries parquet / duckdb cache.
-3. Backend downsamples when the point count is too high.
-4. Backend returns lane data plus warning and statistics metadata.
-5. Frontend renders timeline lanes.
-
-## Warning Flow
-
-Parsing and decode issues should be returned as structured warnings:
-
-- Source file
-- Timestamp if available
-- CAN ID if available
-- Message or signal name if available
-- Warning code
-- Human-readable reason
-- Count for repeated warnings
-
-Warnings should be visible without blocking successful partial analysis.
-
-## Packaging
-
-Target is Windows exe distribution.
-
-If the backend is Python, package it as an executable with PyInstaller or an equivalent tool. Users must not be required to manually install Python.
+- Windows packaged smoke without user-installed Python.
+- Windows installer packaging.
+- macOS packaging.
+- Linux packaging.
+- CI.

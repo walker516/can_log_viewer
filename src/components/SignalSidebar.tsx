@@ -3,6 +3,7 @@ import type { SignalIndexItem } from "../types";
 import type { SignalSelection } from "../hooks/useSignalSelection";
 import type { RecentSignals } from "../hooks/useRecentSignals";
 import { MAX_DISPLAY_SIGNALS } from "../lib/constants";
+import { filterRecentSignalsForCurrentLog } from "../lib/recentSignals";
 import "./SignalSidebar.css";
 
 interface SignalSidebarProps {
@@ -35,8 +36,7 @@ export function SignalSidebar({ signals, selection, recent }: SignalSidebarProps
 
   // Only show recent entries that exist in the currently opened log.
   const recentForLog = useMemo(() => {
-    const available = new Set(signals.map((signal) => signal.signal_name));
-    return recent.recent.filter((item) => available.has(item.signal_name));
+    return filterRecentSignalsForCurrentLog(recent.recent, signals);
   }, [signals, recent.recent]);
 
   if (!open) {
@@ -88,14 +88,13 @@ export function SignalSidebar({ signals, selection, recent }: SignalSidebarProps
               const selected = selectedSignals.includes(item.signal_name);
               return (
                 <button
-                  key={item.signal_name}
+                  key={`${item.can_id}:${item.message_name}:${item.signal_name}`}
                   className={`recent-item ${selected ? "selected" : ""}`}
                   type="button"
-                  disabled={selected}
                   onClick={() => addSignal(item)}
-                  title={`${item.message_name} / ${item.can_id}${item.unit ? ` / ${item.unit}` : ""}`}
+                  title={item.signal_name}
                 >
-                  {item.signal_name}
+                  <span className="recent-name">{item.signal_name}</span>
                 </button>
               );
             })}

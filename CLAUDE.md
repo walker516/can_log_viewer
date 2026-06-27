@@ -2,92 +2,121 @@
 
 ## Role
 
-You are assisting with implementation of a local desktop CAN log visualization tool.
+Assist with development of a local desktop CAN log visualization tool.
 
-Optimize for maintainability, small steps, explicit data models, and clear boundaries between frontend and backend.
+Optimize for maintainability, small steps, explicit data models, and clear
+frontend/backend boundaries.
 
 ## Required Reading
 
 Before implementation work, read:
 
-- `docs/use_cases.md` — the authoritative specification baseline. When docs
-  disagree, `use_cases.md` wins.
-- `docs/task_plan.md` — what is done, what is next, what is out of scope. Check
-  it (and `use_cases.md`) before starting any change.
+- `docs/use_cases.md` — authoritative specification baseline
+- `docs/task_plan.md` — current status and next task
 - `README.md`
 - `docs/requirements.md`
 - `docs/architecture.md`
 - `docs/ui_policy.md`
 - `AGENTS.md`
 
+When documents disagree, `docs/use_cases.md` wins.
+
 ## Product Intent
 
 This is an offline CAN log analysis viewer.
 
-It reads BLF / ASC / CSV CAN logs and DBC files, decodes CAN frames into signals, and displays selected signals in vertically stacked timeline lanes.
+It opens BLF / ASC / CSV logs, decodes frames with the bundled fixed DBC, and
+displays selected signals in vertically stacked timeline lanes.
 
-The app is not a real-time player. Do not add playback controls unless explicitly requested.
+It is not a real-time player.
 
-## Required UX Direction
+## Current Implementation
 
-The UI must be modern but simple.
+Implemented:
 
-Important:
+- Open Log for `.blf`, `.asc`, `.csv`
+- bundled `default.dbc` decode
+- internal decode cache
+- signal search and selection
+- max 5 signal timeline display
+- plot range selection
+- Fit All
+- persistent cursor bar
+- per-lane cursor values
+- hover tooltip
+- lane reorder
+- trash drop zone delete during lane header drag
+- Recent signal shortcut in the Signals pane
+- warning summary
+- PNG export without save dialog
+- Tauri app data root for cache/export
+- PyInstaller backend executable prototype
+- Tauri sidecar wiring
 
-- Minimize visible buttons.
-- Keep primary visible actions limited to Open and Export.
-- Do not add a large toolbar.
-- Do not add playback UI.
-- Do not add speed controls.
-- Do not add real-time cursor movement.
-- Use search-first signal selection.
-- Use tags for selected signals.
-- Use mouse operations for zoom, pan, and range selection.
-- Use auto-save for view state.
-- Put advanced controls in a context menu, drawer, or settings.
-- Avoid product-name or brand-heavy screens.
+Current remaining focus:
 
-## Technical Direction
+- Windows packaged smoke
+- installer packaging
+- macOS packaging
+- Linux packaging
+- CI
 
-Preferred stack:
-
-- Tauri
-- React
-- TypeScript
-- Python backend
-- python-can
-- cantools
-- parquet
-- duckdb
-- uPlot or Plotly.js
-
-If a different stack is proposed, explain the tradeoff before changing direction.
-
-## Responsibility Boundaries
+## Architecture Direction
 
 Frontend:
 
-- File selection UI
-- Signal search UI (add-only; selected state shown by list highlight)
-- Timeline rendering, lane reorder/delete, and per-lane cursor values
-- PNG export (renders the timeline; the Tauri/Rust layer owns the output path)
-- View state management (in-memory; no persistence)
+- file selection UI
+- signal search and selection
+- Recent signal shortcut
+- timeline rendering and interactions
+- PNG byte rendering
+- in-memory view state
+
+Tauri/Rust:
+
+- command bridge
+- backend discovery and execution
+- app data root resolution
+- cache path ownership
+- PNG export path and filename ownership
 
 Backend:
 
-- Read BLF / ASC / CSV
-- Load DBC
-- Decode CAN messages into signals
-- Build signal index
-- Persist parquet / duckdb cache
-- Serve range queries by selected signal and visible time range
-- Downsample when point counts are too large
+- BLF / ASC / CSV reading
+- bundled DBC loading
+- frame decode
+- signal index
+- parquet cache
+- selected-signal/time-range query
+- downsampling
+- structured warnings
 
-Do not load entire huge logs into the frontend.
+Backend discovery order:
+
+1. `CAN_LOG_VIEWER_BACKEND`
+2. bundled sidecar backend executable
+3. debug/dev only: `CAN_LOG_VIEWER_PYTHON`
+4. debug/dev only: `python3`, then `python`
+
+Release/packaged builds must not fall back to user-installed Python.
+
+## UI Guardrails
+
+- Do not increase always-visible UI information.
+- Topbar remains Open Log, basename, discreet warning/status, Fit All icon,
+  Export icon.
+- Do not show full path, cache path, signal count, time range, or cursor value
+  list in the Topbar.
+- Selected state is signal-list highlight only.
+- Do not restore selected-signal tags.
+- Recent shows signal name only.
+- Signal removal and lane reorder live on the timeline.
+- Per-lane cursor values stay in lane top-right.
+- PNG export has no save dialog and writes to `app_data_root()/exports/png/`.
 
 ## Data Rules
 
-Decoded signal data must include:
+Decoded signal rows must preserve:
 
 - `session_time`
 - `source_time`
@@ -99,77 +128,27 @@ Decoded signal data must include:
 - `value`
 - `raw_value`
 - `unit`
-- `enum_label` when available
+- `enum_label`
 
-Multiple logs must be concatenated using `session_time` while preserving original `source_time` and `source_file`.
-
-## Cache Rules
-
-Separate history and decode cache. (Status: the decode cache is implemented;
-history, the ring buffer, and LRU cleanup are planned and not implemented yet —
-do not add them unprompted.)
-
-History (planned, not implemented):
-
-- Stores viewed sessions, selected signals, visible ranges, export history, and thumbnails.
-- Uses a count-based ring buffer.
-
-Decode cache:
-
-- Stores decoded parquet / duckdb data under `app_data_root()/cache/`.
-- Capacity-based LRU deletion is planned (not implemented).
-
-## Error Handling
-
-Parsing failures should be reported as structured warnings with enough context:
-
-- Source file
-- Timestamp if available
-- CAN ID if available
-- Reason
-
-Do not silently discard large classes of errors without a summary.
-
-## Packaging Goal
-
-Final target is Windows exe distribution.
-
-If Python backend is used, package it as an executable and bundle it with the desktop app. Users must not be required to install Python manually.
+The frontend must not load huge decoded datasets. It should request only
+selected signals and the visible time range.
 
 ## Do Not Implement Unless Explicitly Requested
 
-- Real-time playback
-- Playback speed controls
-- CAN bus transmission
-- Online device connection
-- Complex dashboard layout
-- Heavy project branding
-- Cloud upload
-- User authentication
-- DBC selection UI or a `--dbc` CLI option (the bundled `default.dbc` is fixed)
-- Save View, view-metadata save, or session restore
-- Session history / cache ring buffer, or decode-cache LRU cleanup
-- PDF / CSV / JSON export
-- Lane-height drag resizing
-- A Start/End numeric range input, or any always-on cursor/value list in the
-  Topbar or above the timeline
-
-## Current Implementation Guardrails
-
-These reflect decisions already shipped; do not silently revert them.
-
-- `docs/use_cases.md` is the spec baseline; confirm against it and
-  `docs/task_plan.md` before implementing. Do not exaggerate done vs not-done.
-- Do not increase always-visible UI information. Selected state is shown by
-  signal-list highlight only — no sidebar selected-signal tag list or × button.
-- Signal removal and lane reordering live on the timeline (lane header drag →
-  trash drop zone). Do not re-add removal/reorder controls to the Signals pane.
-- Per-lane cursor values stay in each lane's top-right; do not move them to a
-  Topbar/overview list.
-- PNG export has no save dialog and writes to `app_data_root()/exports/png/`.
-  Do not change it back to a save dialog or to Downloads. The frontend passes
-  bytes + log basename only; the Tauri/Rust layer owns the path and file name.
-- Cache and exports both derive from a single `app_data_root()`; keep that one
-  decision point. Cache is internal and not user-selectable.
-- Signal selection history (UC-04) is a planned later/Should task and is NOT
-  implemented. Do not mix it into unrelated changes unprompted.
+- Real-time playback.
+- Playback speed controls.
+- Real-time cursor movement.
+- CAN transmission or online connection.
+- DBC selection UI.
+- `--dbc` CLI option.
+- Save View.
+- View metadata persistence.
+- Session restore.
+- Session history ring buffer.
+- Decode cache LRU cleanup.
+- PDF / CSV / JSON export.
+- Lane-height drag resizing.
+- Selected-signal tag UI.
+- Always-visible remove icons.
+- PNG save dialog or Downloads export.
+- Complex dashboard, cloud upload, authentication, heavy branding.

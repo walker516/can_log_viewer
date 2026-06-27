@@ -1,110 +1,113 @@
 # UI Policy
 
-## Basic Direction
+## Direction
 
-The UI should be modern, simple, and optimized for offline timeline inspection.
+The UI is a focused offline timeline viewer. It should feel modern and clear,
+but it must not grow into a large dashboard or real-time player.
 
-This is not a real-time player and not a full CANalyzer-style workspace. Avoid complex dashboards, dense toolbars, and brand-heavy screens.
+Keep visible buttons and always-visible information minimal.
 
 ## Main Flow
 
-1. Open logs and DBC files.
+1. Open Log.
 2. Search signals.
-3. Select signals.
-4. Inspect the timeline.
+3. Select up to 5 signals.
+4. Inspect the timeline by click, drag, hover, lane reorder, and Fit All.
 5. Export the current timeline as PNG.
 
-## Top-Level Actions
+## Topbar
 
-Visible top-level actions should be minimal.
+The Topbar contains only:
 
-The current Topbar holds: Open Log (left); the opened log basename; a discreet
-warning/status area; and the Fit All and Export icon buttons on the right. Fit
-All and Export are icon-only (labelled via tooltip/aria-label). Topbar items are
-vertically centered. Do not increase the always-visible information here.
+- Open Log
+- opened log basename
+- discreet warning/status text
+- Fit All icon button
+- Export icon button
 
-Preferred visible actions:
+Do not add:
 
-- Open
-- Export
-- Fit All (right-side icon)
-
-Avoid top-level buttons for:
-
+- full path
+- cache path
+- signal count
+- time range
+- cursor value list
 - Save View
-- Play
-- Pause
-- Speed
-- Real-time cursor
-- Zoom In
-- Zoom Out
-- Reset Zoom
-- Cache Clear
-- History Save
+- playback controls
+- zoom button cluster
 
-These actions should be automatic, mouse-based, hidden in context menus, or placed in settings if needed.
+## Signals Pane
 
-## Layout
+- Fixed width.
+- Collapsible.
+- Search box and Recent section stay above the list.
+- Signal list scrolls internally.
+- Selected signals are shown by row highlight.
+- No selected-signal tag UI.
+- No per-row remove icon for selected signals.
+- Recent shows signal name only, up to 10 entries.
+- Recent is a lightweight local selection shortcut, not session history.
 
-Preferred layout:
+## Timeline
 
-- Left: fixed-width Signals pane (search + result list; the list scrolls).
-- Center: vertically stacked timeline lanes.
-- The Signals pane and the timeline share the same top edge / height; no empty
-  band above the timeline.
+Timeline interactions:
 
-Do not make the first screen a marketing or landing page. The first screen should be the usable analysis workspace.
+- plot drag: range selection
+- plot click: move persistent cursor bar
+- double click: Fit All
+- lane header drag: reorder lanes
+- lane header drag to temporary trash drop zone: remove signal
+- point hover: tooltip
 
-## Signal Selection
+Timeline display:
 
-- Search results are clicked to add signals (add-only; the 5-signal cap applies).
-- The selected state is shown by highlighting rows in the signal list. There is
-  no selected-signal tag list and no always-visible × remove icon.
-- Removal and reordering of displayed signals are done on the timeline, not in
-  the Signals pane (see Timeline Interaction).
-- Do not use a large always-visible signal management toolbar.
+- maximum 5 signals
+- one signal per lane
+- point display
+- shared `session_time` axis
+- grid lines
+- per-lane cursor value in each lane's top-right
 
-## Timeline Interaction
+Do not show cursor values in the Topbar or above the timeline.
 
-Preferred interactions:
+## PNG Export
 
-- Plot-area drag: select a visible range (translucent overlay).
-- Plot-area click: place the persistent cursor bar.
-- Double click: Fit All (also available as the right-side toolbar icon).
-- Lane header drag: reorder lanes.
-- Lane header drag → trash drop zone (shown only during the drag): remove a
-  signal. Do not show a per-lane remove icon at all times.
-- Each lane shows the cursor-position value in its top-right; do not show a
-  combined cursor/value list in the Topbar or above the timeline.
-- There is no Start/End numeric input; range is set by dragging.
+Export is PNG only and uses the Export icon.
 
-Do not add playback controls or playback speed controls.
+- No save dialog.
+- Save to `app_data_root()/exports/png/`.
+- The Tauri/Rust layer owns the output directory and filename.
+- Status shows the saved file name only.
 
-## Export
+PNG includes timeline content only:
 
-Export is a single right-side toolbar icon (PNG, current visible range, current
-selected signals).
+- lanes
+- points
+- axis
+- grid
+- cursor bar
+- per-lane cursor values
+- current lane order
+- visible selection overlay
 
-- No save dialog. The PNG is written to the app-managed `exports/png/` directory;
-  the user does not choose the destination and it is never saved to Downloads.
-- Success is reported as a short status (the saved file name only — not the full
-  path).
+PNG excludes:
 
-## History
+- Topbar
+- Signals pane
+- Recent section
+- hover tooltip
+- trash drop zone
 
-History is not implemented and is out of scope for now.
+## Out of Scope UI
 
-Do not add a Save View button; if view persistence is ever added it must be
-automatic, not a manual action.
+Do not add unless explicitly requested:
 
-## Naming
-
-Do not spend time on product naming or branding.
-
-Use neutral labels such as:
-
-- CAN Log Viewer
-- Timeline
-- Signals
-- History
-- Warnings
+- playback controls
+- playback speed
+- real-time cursor movement
+- DBC picker
+- Save View
+- session restore UI
+- PDF / CSV / JSON export UI
+- lane-height drag resizing
+- large settings or dashboard surfaces

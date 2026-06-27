@@ -95,19 +95,20 @@
 
 .recent-list {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 6px;
-  max-height: 84px;
+  max-height: 112px;
   overflow-y: auto;
 }
 
 .recent-item {
-  max-width: 100%;
-  height: 26px;
+  width: 100%;
+  min-height: 34px;
   overflow: hidden;
   border: 1px solid #cdd6df;
   border-radius: 6px;
-  padding: 0 8px;
+  padding: 0 10px;
+  text-align: left;
   color: #36505f;
   background: #f4f7f9;
   font-size: 12px;
@@ -120,9 +121,18 @@
   background: #e8eef3;
 }
 
-.recent-item:disabled {
-  color: #97a3ad;
-  cursor: default;
+.recent-item.selected {
+  border-color: #c3d4e1;
+  background: #dfeaf2;
+}
+
+.recent-name {
+  display: block;
+  overflow: hidden;
+  line-height: 32px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
 }
 
 .signal-list {

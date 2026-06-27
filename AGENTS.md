@@ -4,146 +4,121 @@
 
 This project builds a local desktop CAN log visualization app.
 
-The app reads BLF / ASC / CSV CAN logs and DBC files, decodes CAN frames into signals, and visualizes selected signals as vertically stacked timeline lanes.
+The app opens BLF / ASC / CSV CAN logs, decodes CAN frames with the bundled
+fixed DBC, and visualizes selected signals as vertically stacked timeline lanes.
 
 The primary use case is offline log analysis, not real-time playback.
 
-## Important Product Decisions
+## Required Reading Before Changes
 
-- Do not implement real-time playback.
-- Do not implement playback speed controls.
-- Do not implement real-time cursor movement.
-- Do not add unnecessary toolbar buttons.
-- Keep the UI modern but simple.
-- The main user flow is:
-  1. Open log and DBC files
-  2. Search signals
-  3. Select signals
-  4. Inspect timeline by zooming/panning/selecting range
-  5. Export the current view as PNG
+Read these before coding or changing docs:
 
-## UI Policy
-
-- Always minimize visible buttons.
-- The top-level UI should have only essential actions: Open Log, plus Fit All and
-  Export as right-side toolbar icon buttons.
-- Save View is out of scope; do not add it. If view persistence is ever added it
-  must be automatic, not a button.
-- Use mouse interactions for range selection (plot-area drag) and cursor (plot
-  click); double-click or the Fit All icon resets to full range.
-- Signal selection is add-only by clicking search results; selected state is
-  shown by list highlight (no selected-signal tag list, no × icon).
-- Signal removal and lane reordering are done on the timeline (lane header drag →
-  trash drop zone shown only during the drag), not in the Signals pane.
-- Cursor-position values are shown per lane (top-right), not in a Topbar list.
-- Advanced options should be hidden behind context menu, drawer, or settings.
-- No brand-heavy title or product naming is needed.
-
-## Architecture Policy
-
-Preferred architecture:
-
-- Desktop shell: Tauri
-- Frontend: React + TypeScript
-- Backend: Python
-- CAN log reader: python-can
-- DBC decoder: cantools
-- Cache: parquet + duckdb
-- Timeline rendering: uPlot or Plotly.js
-
-Keep backend and frontend responsibilities separated.
-
-Frontend:
-
-- File selection UI
-- Signal search UI
-- Timeline rendering
-- PNG export
-- View state management
-
-Backend:
-
-- Read BLF / ASC / CSV
-- Load DBC
-- Decode CAN messages into signals
-- Build signal index
-- Persist parquet / duckdb cache
-- Serve range queries by selected signal and time range
-- Downsample on backend if the number of points is too large
-
-## Data Model Requirements
-
-The decoded data must preserve both:
-
-- `session_time`: time on the concatenated analysis timeline
-- `source_time`: original timestamp in the source log
-- `source_file`: original log file path or name
-
-Do not overwrite source timing information when concatenating logs.
-
-## Cache Policy
-
-Separate history and decode cache.
-
-History:
-
-- Stores viewed sessions, selected signals, visible ranges, export history, and thumbnails.
-- Use count-based ring buffer.
-
-Decode cache:
-
-- Stores decoded parquet / duckdb data.
-- Use capacity-based LRU deletion.
-
-## Distribution Policy
-
-- Target Windows executable distribution.
-- If a Python backend is used, package it as an executable and bundle it with the app.
-- End users must not be required to install Python manually.
-
-## Coding Guidelines
-
-- Keep modules small and focused.
-- Avoid premature abstraction.
-- Prefer explicit data models.
-- Do not hide parsing errors silently; return structured warnings.
-- Do not load entire huge logs into the frontend.
-- Frontend should request only selected signals and visible time range.
-- Downsample on backend if the number of points is too large.
-
-## Required Reading Before Coding
-
-- `docs/use_cases.md` — authoritative spec baseline (wins when docs disagree).
-- `docs/task_plan.md` — done / next / out of scope; check before any change.
+- `docs/use_cases.md` — authoritative specification baseline
+- `docs/task_plan.md` — current status, current task, out of scope
 - `README.md`
 - `docs/requirements.md`
 - `docs/architecture.md`
 - `docs/ui_policy.md`
 
-## Do Not Implement Yet
+When documents disagree, `docs/use_cases.md` wins. Follow the current task in
+`docs/task_plan.md` and do not widen scope unprompted.
 
-Unless explicitly requested, do not implement:
+## Current Architecture
 
-- Real-time playback
-- Playback speed
-- CAN bus transmission
-- Online device connection
-- Complex dashboard layout
-- Heavy project branding
-- Cloud upload
-- User authentication
-- DBC selection UI or a `--dbc` CLI option (the bundled `default.dbc` is fixed)
-- Save View, view-metadata save, or session restore
-- Session history / cache ring buffer, or decode-cache LRU cleanup
-- PDF / CSV / JSON export
-- Lane-height drag resizing
-- Signal selection history (UC-04) — planned later/Should; do not mix in unprompted
+- Desktop shell: Tauri
+- Frontend: React + TypeScript
+- Backend: Python CLI
+- Backend packaging: PyInstaller executable wired as a Tauri sidecar
+- CAN log reader: python-can
+- DBC decoder: cantools
+- Cache: app-managed parquet cache
+- PNG exports: app-managed `exports/png`
 
-## Path and Export Guardrails (already shipped)
+Backend discovery order:
 
-- PNG export has no save dialog and writes to `app_data_root()/exports/png/`.
-  Do not revert it to a save dialog or to Downloads. The frontend passes only the
-  rendered bytes and the log basename; the Tauri/Rust layer owns the path and
-  file name. Cache and exports both derive from a single `app_data_root()`.
-- Cache is internal and not user-selectable.
-- Do not increase always-visible UI information.
+1. `CAN_LOG_VIEWER_BACKEND`, if set
+2. bundled sidecar backend executable
+3. debug/dev builds only: `CAN_LOG_VIEWER_PYTHON`
+4. debug/dev builds only: `python3`, then `python`
+
+Release/packaged builds must not fall back to user-installed Python.
+
+## App-managed Paths
+
+Cache and PNG exports derive from one Tauri/Rust-owned app data root.
+
+- Default root: Tauri OS app data directory
+- Development override: `CAN_LOG_VIEWER_APP_DATA_ROOT`
+- Cache: `app_data_root()/cache/logs/<hash>/`
+- PNG exports: `app_data_root()/exports/png/`
+
+The frontend must not construct cache/export paths. PNG export has no save
+dialog and must not be moved to Downloads.
+
+## UI Policy
+
+- Keep visible controls minimal.
+- Topbar should remain: Open Log, log basename, discreet warning/status, Fit All
+  icon, Export icon.
+- Signal selection is add-only from the Signals list.
+- Selected state is shown by list highlight.
+- Do not restore selected-signal tags.
+- Recent signals are a small Signals pane shortcut and show signal name only.
+- Signal removal and lane reorder happen on the timeline:
+  lane header drag, with a temporary trash drop zone for removal.
+- Cursor-position values are shown per lane, not in the Topbar.
+- Range selection is plot-area drag.
+- Cursor placement is plot-area click.
+- Fit All is timeline double-click or toolbar icon.
+
+## Data Requirements
+
+Decoded signal data must preserve:
+
+- `session_time`
+- `source_time`
+- `source_file`
+- `channel`
+- `can_id`
+- `message_name`
+- `signal_name`
+- `value`
+- `raw_value`
+- `unit`
+- `enum_label`
+
+The frontend should request only selected signals and the visible time range.
+
+## Do Not Implement Unless Explicitly Requested
+
+- Real-time playback.
+- Playback speed controls.
+- Real-time cursor movement.
+- CAN bus transmission or online device connection.
+- Complex dashboard layout.
+- Heavy branding.
+- Cloud upload.
+- User authentication.
+- DBC selection UI.
+- `--dbc` CLI option.
+- Save View, view metadata persistence, or session restore.
+- Session history ring buffer.
+- Decode cache LRU cleanup.
+- PDF / CSV / JSON export.
+- Lane-height drag resizing.
+- Selected-signal tag UI.
+- Always-visible per-lane remove icons.
+- PNG save dialog or Downloads export.
+
+## Current Packaging Focus
+
+Core viewer features are implemented. The current remaining work is packaging
+verification, starting with Windows packaged smoke:
+
+- release app starts
+- bundled sidecar backend is used
+- Python is not required
+- app data cache/export paths are used
+- Open Log, query, Recent, timeline, and PNG export work
+
+Installer packaging, macOS packaging, Linux packaging, and CI are later tasks.

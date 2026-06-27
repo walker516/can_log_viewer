@@ -1,63 +1,51 @@
 import type { SignalIndexItem } from "../types";
 
-// A signal-selection helper only: this is the list of recently selected signals
-// used to re-select without searching. It is NOT session history, view restore,
-// or a cache ring buffer — it stores no ranges, cursor, cache, or files.
 export interface RecentSignal {
   signal_name: string;
   message_name: string;
   can_id: string;
   unit: string;
-  last_selected: number; // epoch ms
-  count: number;
+  last_selected_at: number;
+  selection_count: number;
 }
 
 export const MAX_RECENT_SIGNALS = 10;
-const STORAGE_KEY = "can-log-viewer:recent-signals";
+export const RECENT_SIGNALS_STORAGE_KEY = "can_log_viewer.recent_signals.v1";
 
-// Just the identity/metadata fields; a SignalIndexItem satisfies this.
+type SignalIdentity = Pick<SignalIndexItem, "signal_name" | "message_name" | "can_id">;
 type SignalLike = Pick<SignalIndexItem, "signal_name" | "message_name" | "can_id" | "unit">;
 
-// Pure: record a selection. Existing entry is moved to the front with an
-// incremented count and refreshed timestamp; the list is newest-first and
-// capped at MAX_RECENT_SIGNALS (oldest drop off the end).
-export function addRecent(list: RecentSignal[], signal: SignalLike, now: number = Date.now()): RecentSignal[] {
-  const existing = list.find((item) => item.signal_name === signal.signal_name);
+interface StorageLike {
+  getItem: (key: string) => string | null;
+  setItem: (key: string, value: string) => void;
+}
+
+export function addRecentSignal(list: RecentSignal[], signal: SignalLike, now: number = Date.now()): RecentSignal[] {
+  const existing = list.find((item) => sameSignal(item, signal));
   const updated: RecentSignal = {
     signal_name: signal.signal_name,
     message_name: signal.message_name,
     can_id: signal.can_id,
     unit: signal.unit,
-    last_selected: now,
-    count: (existing?.count ?? 0) + 1
+    last_selected_at: now,
+    selection_count: (existing?.selection_count ?? 0) + 1
   };
-  const rest = list.filter((item) => item.signal_name !== signal.signal_name);
-  return [updated, ...rest].slice(0, MAX_RECENT_SIGNALS);
+  const rest = list.filter((item) => !sameSignal(item, signal));
+  return [updated, ...rest]
+    .sort((left, right) => right.last_selected_at - left.last_selected_at)
+    .slice(0, MAX_RECENT_SIGNALS);
 }
 
-function isValidEntry(value: unknown): value is RecentSignal {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-  const entry = value as Record<string, unknown>;
-  return (
-    typeof entry.signal_name === "string" &&
-    typeof entry.message_name === "string" &&
-    typeof entry.can_id === "string" &&
-    typeof entry.unit === "string" &&
-    typeof entry.last_selected === "number" &&
-    typeof entry.count === "number"
-  );
+export function filterRecentSignalsForCurrentLog(recent: RecentSignal[], signals: SignalIndexItem[]): RecentSignal[] {
+  return recent.filter((item) => signals.some((signal) => sameSignal(item, signal))).slice(0, MAX_RECENT_SIGNALS);
 }
 
-// Tolerant load: never throws. Missing, non-JSON, or malformed storage all
-// yield an empty list so a corrupt value can never break the app.
-export function loadRecent(): RecentSignal[] {
-  if (typeof window === "undefined" || !window.localStorage) {
+export function loadRecentSignals(storage: StorageLike | null = browserStorage()): RecentSignal[] {
+  if (!storage) {
     return [];
   }
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = storage.getItem(RECENT_SIGNALS_STORAGE_KEY);
     if (!raw) {
       return [];
     }
@@ -65,19 +53,50 @@ export function loadRecent(): RecentSignal[] {
     if (!Array.isArray(parsed)) {
       return [];
     }
-    return parsed.filter(isValidEntry).slice(0, MAX_RECENT_SIGNALS);
+    return parsed.filter(isValidRecentSignal).sort((left, right) => right.last_selected_at - left.last_selected_at).slice(0, MAX_RECENT_SIGNALS);
   } catch {
     return [];
   }
 }
 
-export function saveRecent(list: RecentSignal[]): void {
-  if (typeof window === "undefined" || !window.localStorage) {
+export function saveRecentSignals(list: RecentSignal[], storage: StorageLike | null = browserStorage()): void {
+  if (!storage) {
     return;
   }
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    storage.setItem(RECENT_SIGNALS_STORAGE_KEY, JSON.stringify(list.slice(0, MAX_RECENT_SIGNALS)));
   } catch {
-    // Ignore quota / unavailable storage: the recent list is a non-critical aid.
+    // Recent signals are a lightweight UI aid; unavailable/quota-limited storage
+    // must not break log analysis.
+  }
+}
+
+function sameSignal(left: SignalIdentity, right: SignalIdentity): boolean {
+  return left.signal_name === right.signal_name && left.message_name === right.message_name && left.can_id === right.can_id;
+}
+
+function isValidRecentSignal(value: unknown): value is RecentSignal {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const item = value as Record<string, unknown>;
+  return (
+    typeof item.signal_name === "string" &&
+    typeof item.message_name === "string" &&
+    typeof item.can_id === "string" &&
+    typeof item.unit === "string" &&
+    typeof item.last_selected_at === "number" &&
+    typeof item.selection_count === "number"
+  );
+}
+
+function browserStorage(): StorageLike | null {
+  try {
+    if (typeof window === "undefined") {
+      return null;
+    }
+    return window.localStorage;
+  } catch {
+    return null;
   }
 }
