@@ -41,8 +41,6 @@ The app:
 - displays the signal list
 - shows only the opened log basename
 
-No DBC picker, `--dbc` option, cache picker, full path, or cache path is exposed.
-
 ## UC-02: Search Signals
 
 User searches signals in the Signals pane.
@@ -56,19 +54,23 @@ Search fields:
 The Signals pane is fixed width. Search and Recent remain at the top; the
 signal list scrolls internally.
 
-## UC-03: Select Signals for Timeline Display
+## UC-03: Toggle Signals for Timeline Display
 
-User clicks a signal row to add it to the timeline.
+User clicks a signal row to show or hide it in the timeline.
 
 Rules:
 
+- unselected signal click adds a lane
+- selected signal click removes that lane
 - selected rows are highlighted in the signal list
 - maximum 5 displayed signals
-- 6th selection is rejected with a light warning
+- 6th addition is rejected with a light warning
+- removal never triggers the maximum-count warning
 - no selected-signal tag list
 - no remove icon in the Signals pane
+- signal identity is `message_name + signal_name + can_id`
 
-Signals are removed from the timeline via UC-16.
+Signals may also be removed from the timeline via UC-16.
 
 ## UC-04: Recent Signal Selection History
 
@@ -81,8 +83,9 @@ Behavior:
 - maximum 10 items
 - display signal name only
 - filter to signals present in the currently opened log
-- clicking a Recent item reselects that signal
+- clicking a Recent item uses the same toggle behavior as the signal list
 - selected state is shown consistently with signal list highlighting
+- toggle-off removes the lane but does not delete the Recent history entry
 
 Stored data may include signal name, message name, CAN ID, unit,
 `last_selected_at`, and `selection_count`, but only signal name is shown.
@@ -186,6 +189,7 @@ PNG includes:
 - cursor bar
 - per-lane cursor values
 - current lane order
+- optional reference lines and labels
 - selection overlay if visible
 
 PNG excludes:
@@ -263,20 +267,35 @@ Behavior:
 Plot-area drag remains range selection. Plot-area click remains cursor
 placement. Lane-height drag resizing is out of scope.
 
+## UC-17: Optional Per-lane Reference Line
+
+User may set one temporary horizontal reference line per numeric lane.
+
+Behavior:
+
+- default state shows no reference line
+- a small lower-left lane handle is visible for numeric lanes
+- dragging the handle sets or updates the reference value
+- double-clicking the handle clears that lane's reference line and label
+- enum-valued signals snap to available enum values
+- reference lines are temporary frontend state and are not saved
+- reference line and label are included in PNG export
+- the handle is operation UI and is excluded from PNG export
+
+No button, menu, popover, input, localStorage persistence, or multiple reference
+lines are implemented.
+
 ## Out of Scope
 
-- Real-time playback.
-- Playback speed controls.
-- Real-time cursor movement.
-- CAN transmission or online device connection.
-- DBC selection UI.
-- `--dbc` CLI option.
-- Save View.
-- View metadata persistence.
-- Session restore.
-- Session history ring buffer.
-- Decode cache LRU cleanup.
-- PDF / CSV / JSON export.
-- Lane-height drag resizing.
-- Advanced multi-log alignment or manual time offset.
-- Cloud upload, authentication, complex dashboard, heavy branding.
+Do not implement unless explicitly requested:
+
+- real-time playback, playback speed, or real-time cursor movement
+- CAN transmission or online device connection
+- DBC selection UI or `--dbc`
+- Save View, view metadata persistence, or session restore
+- session history ring buffer
+- decode-cache LRU cleanup
+- PDF / CSV / JSON export
+- lane-height drag resizing
+- advanced multi-log alignment or manual time offset
+- cloud upload, authentication, complex dashboard, or heavy branding

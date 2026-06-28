@@ -11,6 +11,7 @@ import {
   saveRecentSignals,
   type RecentSignal
 } from "../../src/lib/recentSignals.ts";
+import { sameSignal, signalKey } from "../../src/lib/signalIdentity.ts";
 import type { SignalIndexItem } from "../../src/types.ts";
 
 class MemoryStorage {
@@ -83,6 +84,15 @@ test("filterRecentSignalsForCurrentLog excludes signals not present in current l
     result.map((item) => item.signal_name),
     ["Speed"]
   );
+});
+
+test("signal identity uses message_name, signal_name, and can_id", () => {
+  const speed = signal("Speed", "VehicleStatus", "0x100");
+  assert.equal(signalKey(speed), "VehicleStatus::Speed::0x100");
+  assert.equal(sameSignal(speed, signal("Speed", "VehicleStatus", "0x100")), true);
+  assert.equal(sameSignal(speed, signal("Speed", "OtherStatus", "0x100")), false);
+  assert.equal(sameSignal(speed, signal("Speed", "VehicleStatus", "0x101")), false);
+  assert.equal(sameSignal({ ...speed, can_id: 256 }, signal("Speed", "VehicleStatus", "256")), true);
 });
 
 test("loadRecentSignals returns an empty list for broken JSON", () => {

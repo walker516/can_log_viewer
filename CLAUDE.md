@@ -14,9 +14,7 @@ Before implementation work, read:
 - `docs/use_cases.md` — authoritative specification baseline
 - `docs/task_plan.md` — current status and next task
 - `README.md`
-- `docs/requirements.md`
 - `docs/architecture.md`
-- `docs/ui_policy.md`
 - `AGENTS.md`
 
 When documents disagree, `docs/use_cases.md` wins.
@@ -38,6 +36,7 @@ Implemented:
 - bundled `default.dbc` decode
 - internal decode cache
 - signal search and selection
+- toggle selection from the Signals list and Recent
 - max 5 signal timeline display
 - plot range selection
 - Fit All
@@ -47,6 +46,7 @@ Implemented:
 - lane reorder
 - trash drop zone delete during lane header drag
 - Recent signal shortcut in the Signals pane
+- optional draggable per-lane reference line
 - warning summary
 - PNG export without save dialog
 - Tauri app data root for cache/export
@@ -110,7 +110,10 @@ Release/packaged builds must not fall back to user-installed Python.
 - Selected state is signal-list highlight only.
 - Do not restore selected-signal tags.
 - Recent shows signal name only.
+- Signal rows and Recent items toggle selection; do not add remove buttons.
 - Signal removal and lane reorder live on the timeline.
+- Reference lines are optional lane-local aids set by the lower-left lane
+  handle and cleared by double-clicking that handle. Do not persist them.
 - Per-lane cursor values stay in lane top-right.
 - PNG export has no save dialog and writes to `app_data_root()/exports/png/`.
 

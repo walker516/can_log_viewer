@@ -16,9 +16,7 @@ Read these before coding or changing docs:
 - `docs/use_cases.md` — authoritative specification baseline
 - `docs/task_plan.md` — current status, current task, out of scope
 - `README.md`
-- `docs/requirements.md`
 - `docs/architecture.md`
-- `docs/ui_policy.md`
 
 When documents disagree, `docs/use_cases.md` wins. Follow the current task in
 `docs/task_plan.md` and do not widen scope unprompted.
@@ -60,7 +58,8 @@ dialog and must not be moved to Downloads.
 - Keep visible controls minimal.
 - Topbar should remain: Open Log, log basename, discreet warning/status, Fit All
   icon, Export icon.
-- Signal selection is add-only from the Signals list.
+- Signal rows and Recent items toggle selection: click once to show the lane,
+  click again to remove it. Recent history entries remain after toggle-off.
 - Selected state is shown by list highlight.
 - Do not restore selected-signal tags.
 - Recent signals are a small Signals pane shortcut and show signal name only.
@@ -70,6 +69,9 @@ dialog and must not be moved to Downloads.
 - Range selection is plot-area drag.
 - Cursor placement is plot-area click.
 - Fit All is timeline double-click or toolbar icon.
+- Optional per-lane reference lines are set by dragging the small lower-left
+  lane handle and cleared by double-clicking that handle. Do not add buttons,
+  menus, popovers, or persistence for this feature unless explicitly requested.
 
 ## Data Requirements
 

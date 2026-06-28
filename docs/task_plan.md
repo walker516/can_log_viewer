@@ -11,7 +11,8 @@ Core viewer functionality is implemented:
 - Decode with the bundled fixed `backend/resources/default.dbc`.
 - Create and reuse internal decode cache under the Tauri app data directory.
 - Search signals by signal name, message name, and CAN ID.
-- Select up to 5 signals for stacked timeline display.
+- Toggle up to 5 signals for stacked timeline display from the signal list or
+  Recent.
 - Show point-based timeline lanes with a shared `session_time` axis and grid.
 - Select a visible range by dragging on the plot area.
 - Fit All by timeline double-click or the toolbar icon.
@@ -20,6 +21,7 @@ Core viewer functionality is implemented:
 - Reorder lanes by lane header drag.
 - Remove signals by dropping a dragged lane header on the temporary trash zone.
 - Show lightweight Recent signals in the Signals pane.
+- Show optional draggable per-lane reference lines.
 - Show decode/open warning summary discreetly.
 - Export the current timeline as PNG with no save dialog.
 - Store PNG exports under `app_data_root()/exports/png/`.

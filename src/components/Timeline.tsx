@@ -3,6 +3,8 @@ import type { PointerEvent as ReactPointerEvent, RefObject } from "react";
 import type { QueryResponse, SignalIndexItem } from "../types";
 import type { TimelineView } from "../hooks/useTimelineView";
 import type { SignalSelection } from "../hooks/useSignalSelection";
+import type { ReferenceLines } from "../hooks/useReferenceLines";
+import { signalReferenceKey } from "../hooks/useReferenceLines";
 import { LANE_GAP, MAX_DISPLAY_SIGNALS, TIMELINE_VERTICAL_PADDING, TIME_AXIS_HEIGHT } from "../lib/constants";
 import { formatTime } from "../lib/timeline";
 import { TimelineLane } from "./TimelineLane";
@@ -12,14 +14,15 @@ interface TimelineProps {
   timelineRef: RefObject<HTMLDivElement | null>;
   view: TimelineView;
   selection: SignalSelection;
-  signalByName: Map<string, SignalIndexItem>;
+  signalByKey: Map<string, SignalIndexItem>;
   query: QueryResponse | null;
+  referenceLines: ReferenceLines;
 }
 
 // Timeline panel: a thin bar above the plotting area that shows the missing-
 // signal note and, while a lane header is being dragged, a trash drop zone for
 // removing a signal. Lanes share the remaining height evenly.
-export function Timeline({ timelineRef, view, selection, signalByName, query }: TimelineProps) {
+export function Timeline({ timelineRef, view, selection, signalByKey, query, referenceLines }: TimelineProps) {
   const bodyHeight = useBodyHeight(timelineRef);
   const { selectedSignals, reorderSignal, removeSignal } = selection;
 
@@ -38,7 +41,7 @@ export function Timeline({ timelineRef, view, selection, signalByName, query }: 
   // and torn down on up/cancel. A small movement threshold means a plain header
   // click never starts a drag (no trash-zone flicker, no accidental reorder).
   const handleHeaderPointerDown = useCallback(
-    (signalName: string, event: ReactPointerEvent) => {
+    (signalKey: string, event: ReactPointerEvent) => {
       // Keep the gesture off the plot area so it never starts a range selection
       // or moves the cursor; preventDefault avoids text selection while dragging.
       event.stopPropagation();
@@ -56,13 +59,13 @@ export function Timeline({ timelineRef, view, selection, signalByName, query }: 
             return;
           }
           active = true;
-          setDrag(signalName);
+          setDrag(signalKey);
         }
         const element = document.elementFromPoint(move.clientX, move.clientY);
         trashHit = Boolean(element?.closest(".trash-zone"));
         const laneElement = element?.closest("[data-lane-signal]") as HTMLElement | null;
         const target = trashHit ? null : laneElement?.dataset.laneSignal ?? null;
-        targetHit = target && target !== signalName ? target : null;
+        targetHit = target && target !== signalKey ? target : null;
         setOverTrash(trashHit);
         setDropTarget(targetHit);
       };
@@ -77,9 +80,9 @@ export function Timeline({ timelineRef, view, selection, signalByName, query }: 
       const onUp = () => {
         if (active) {
           if (trashHit) {
-            removeSignal(signalName);
+            removeSignal(signalKey);
           } else if (targetHit) {
-            reorderSignal(signalName, targetHit);
+            reorderSignal(signalKey, targetHit);
           }
         }
         cleanup();
@@ -129,21 +132,29 @@ export function Timeline({ timelineRef, view, selection, signalByName, query }: 
           {selectedSignals.length === 0 ? (
             <div className="empty-state">Select up to {MAX_DISPLAY_SIGNALS} signals.</div>
           ) : (
-            selectedSignals.map((signalName) => (
-              <TimelineLane
-                key={signalName}
-                signal={signalByName.get(signalName)}
-                points={query?.signals[signalName] ?? []}
-                start={view.start}
-                end={view.end}
-                cursorTime={view.cursorTime}
-                ticks={view.ticks}
-                laneHeight={laneHeight}
-                isDragged={drag === signalName}
-                isDropTarget={dropTarget === signalName}
-                onHeaderPointerDown={handleHeaderPointerDown}
-              />
-            ))
+            selectedSignals.map((selectedSignal) => {
+              const signal = signalByKey.get(selectedSignal.key);
+              const signalName = signal?.signal_name ?? selectedSignal.signal_name;
+              return (
+                <TimelineLane
+                  key={selectedSignal.key}
+                  laneId={selectedSignal.key}
+                  signal={signal}
+                  points={query?.signals[signalName] ?? []}
+                  start={view.start}
+                  end={view.end}
+                  cursorTime={view.cursorTime}
+                  ticks={view.ticks}
+                  laneHeight={laneHeight}
+                  isDragged={drag === selectedSignal.key}
+                  isDropTarget={dropTarget === selectedSignal.key}
+                  onHeaderPointerDown={handleHeaderPointerDown}
+                  reference={referenceLines.references[signalReferenceKey(signal ?? selectedSignal)] ?? null}
+                  onSetReference={referenceLines.setReference}
+                  onClearReference={referenceLines.clearReference}
+                />
+              );
+            })
           )}
         </div>
       </div>

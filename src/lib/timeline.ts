@@ -72,9 +72,48 @@ export function pointStats(points: TimelinePoint[]): ValueRange | null {
 }
 
 // Map a value onto the lane's vertical band, leaving padding at top and bottom.
-function toY(value: number, stats: ValueRange): number {
+export function valueToY(value: number, stats: ValueRange): number {
   const span = stats.max - stats.min || 1;
   return clamp(100 - ((value - stats.min) / span) * 80, 12, 108);
+}
+
+// Inverse of the normal in-range mapping used by valueToY. Dragging the
+// reference handle clamps to the visible data range so the reference line stays
+// within the lane without changing the y-scale.
+export function yToValue(y: number, stats: ValueRange): number {
+  if (stats.max === stats.min) {
+    return stats.min;
+  }
+  const clampedY = clamp(y, 20, 100);
+  const span = stats.max - stats.min;
+  return clamp(stats.min + ((100 - clampedY) / 80) * span, stats.min, stats.max);
+}
+
+export function enumReferenceCandidates(points: TimelinePoint[]): number[] {
+  const values = new Set<number>();
+  points.forEach((point) => {
+    if (point.enum_label && point.value !== null && Number.isFinite(point.value)) {
+      values.add(point.value);
+    }
+  });
+  return [...values].sort((left, right) => left - right);
+}
+
+export function nearestReferenceCandidate(value: number, candidates: number[]): number {
+  if (candidates.length === 0) {
+    return value;
+  }
+  return candidates.reduce((best, candidate) =>
+    Math.abs(candidate - value) < Math.abs(best - value) ? candidate : best
+  );
+}
+
+export function enumLabelForValue(points: TimelinePoint[], value: number): string | null {
+  return (
+    points.find(
+      (point) => point.enum_label && point.value !== null && Number.isFinite(point.value) && point.value === value
+    )?.enum_label ?? null
+  );
 }
 
 function toX(time: number, start: number, end: number): number {
@@ -96,14 +135,14 @@ export function buildPath(
   let path = "";
   drawable.forEach((point, index) => {
     const x = toX(point.session_time, start, end);
-    const y = toY(point.value as number, stats);
+    const y = valueToY(point.value as number, stats);
     if (index === 0) {
       path += `M ${x} ${y}`;
       return;
     }
     if (plotType === "step") {
       // Hold the previous value until the new sample's time, then step.
-      const previousY = toY(drawable[index - 1].value as number, stats);
+      const previousY = valueToY(drawable[index - 1].value as number, stats);
       path += ` L ${x} ${previousY} L ${x} ${y}`;
     } else {
       path += ` L ${x} ${y}`;
@@ -123,7 +162,7 @@ export function buildPointMarks(
   }
   return points
     .filter((point) => point.value !== null && Number.isFinite(point.value))
-    .map((point) => ({ x: toX(point.session_time, start, end), y: toY(point.value as number, stats) }));
+    .map((point) => ({ x: toX(point.session_time, start, end), y: valueToY(point.value as number, stats) }));
 }
 
 // Hold-last-value lookup for the cursor: the last sample at or before `time`.

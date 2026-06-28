@@ -110,6 +110,63 @@
   vector-effect: non-scaling-stroke;
 }
 
+.reference-line {
+  stroke: rgba(160, 86, 39, 0.68);
+  stroke-width: 1;
+  stroke-linecap: butt;
+  shape-rendering: geometricPrecision;
+  vector-effect: non-scaling-stroke;
+}
+
+.reference-label {
+  fill: #8f4f26;
+  paint-order: stroke;
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 3px;
+  font-size: 11px;
+  font-weight: 650;
+  dominant-baseline: middle;
+  pointer-events: none;
+  vector-effect: non-scaling-stroke;
+}
+
+.reference-handle {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  z-index: 6;
+  width: 18px;
+  height: 18px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: transparent;
+  cursor: ns-resize;
+  touch-action: none;
+}
+
+.reference-handle::after {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  box-sizing: border-box;
+  border: 1px solid rgba(141, 95, 64, 0.55);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.74);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.7);
+  content: "";
+  opacity: 0.52;
+  transform: translate(-50%, -50%);
+}
+
+.reference-handle:hover::after,
+.reference-handle.active::after {
+  border-color: rgba(141, 77, 38, 0.8);
+  background: rgba(244, 224, 207, 0.9);
+  opacity: 0.9;
+}
+
 .plot-empty {
   fill: #8a96a3;
   font-size: 13px;

@@ -1,4 +1,5 @@
 import type { SignalIndexItem } from "../types";
+import { sameSignal } from "./signalIdentity.ts";
 
 export interface RecentSignal {
   signal_name: string;
@@ -12,7 +13,6 @@ export interface RecentSignal {
 export const MAX_RECENT_SIGNALS = 10;
 export const RECENT_SIGNALS_STORAGE_KEY = "can_log_viewer.recent_signals.v1";
 
-type SignalIdentity = Pick<SignalIndexItem, "signal_name" | "message_name" | "can_id">;
 type SignalLike = Pick<SignalIndexItem, "signal_name" | "message_name" | "can_id" | "unit">;
 
 interface StorageLike {
@@ -69,10 +69,6 @@ export function saveRecentSignals(list: RecentSignal[], storage: StorageLike | n
     // Recent signals are a lightweight UI aid; unavailable/quota-limited storage
     // must not break log analysis.
   }
-}
-
-function sameSignal(left: SignalIdentity, right: SignalIdentity): boolean {
-  return left.signal_name === right.signal_name && left.message_name === right.message_name && left.can_id === right.can_id;
 }
 
 function isValidRecentSignal(value: unknown): value is RecentSignal {

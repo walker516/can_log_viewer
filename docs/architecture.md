@@ -22,6 +22,7 @@ The app is a local desktop CAN log viewer with a strict frontend/backend split.
 - Lightweight Recent signal display backed by localStorage.
 - Timeline rendering.
 - Range selection, cursor placement, lane reorder, and lane delete interactions.
+- Temporary per-lane reference line state and rendering.
 - Render the timeline PNG bytes.
 
 The frontend does not:

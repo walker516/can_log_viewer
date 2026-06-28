@@ -9,7 +9,9 @@ import { useSignalQuery } from "./hooks/useSignalQuery";
 import { useTimelineView } from "./hooks/useTimelineView";
 import { useTimelineExport } from "./hooks/useTimelineExport";
 import { useRecentSignals } from "./hooks/useRecentSignals";
+import { useReferenceLines } from "./hooks/useReferenceLines";
 import { formatWarningSummary } from "./lib/warnings";
+import { signalKey } from "./lib/signalIdentity.ts";
 
 // App is a thin composition layer: it wires the feature hooks together and lays
 // out the three panels. All real logic lives in hooks/ and lib/.
@@ -25,7 +27,7 @@ function App() {
 
   const query = useSignalQuery({
     cachePath: session.cachePath,
-    selectedSignals: selection.selectedSignals,
+    selectedSignals: selection.selectedSignalNames,
     start: view.start,
     end: view.end,
     report
@@ -34,10 +36,11 @@ function App() {
   const canExport = selection.selectedSignals.length > 0 && Boolean(query) && !report.loading;
   const exportPng = useTimelineExport({ timelineRef, logFileName: session.logFileName, canExport, report });
 
-  const signalByName = useMemo(
-    () => new Map((session.inspect?.signals ?? []).map((signal) => [signal.signal_name, signal])),
+  const signalByKey = useMemo(
+    () => new Map((session.inspect?.signals ?? []).map((signal) => [signalKey(signal), signal])),
     [session.inspect]
   );
+  const referenceLines = useReferenceLines(selection.selectedSignals);
 
   // Decode-warning summary comes from the inspect result (by_code counts) and
   // stays tied to the opened log, independent of transient query status.
@@ -62,8 +65,9 @@ function App() {
           timelineRef={timelineRef}
           view={view}
           selection={selection}
-          signalByName={signalByName}
+          signalByKey={signalByKey}
           query={query}
+          referenceLines={referenceLines}
         />
       </section>
     </main>
