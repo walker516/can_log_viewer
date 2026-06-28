@@ -22,6 +22,8 @@ Core viewer functionality is implemented:
 - Remove signals by dropping a dragged lane header on the temporary trash zone.
 - Show lightweight Recent signals in the Signals pane.
 - Show optional draggable per-lane reference lines.
+- Show optional per-lane value transition markers for enum-label signals, with
+  frontend-only temporary state and visible-marker PNG export.
 - Show decode/open warning summary discreetly.
 - Export the current timeline as PNG with no save dialog.
 - Store PNG exports under `app_data_root()/exports/png/`.

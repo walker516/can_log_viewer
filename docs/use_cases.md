@@ -41,6 +41,9 @@ The app:
 - displays the signal list
 - shows only the opened log basename
 
+Internally, the opened log path is kept as an absolute path. The full path is
+not shown in the main UI.
+
 ## UC-02: Search Signals
 
 User searches signals in the Signals pane.
@@ -178,6 +181,7 @@ Behavior:
 - sanitize unsafe filename characters
 - append `_001`, `_002`, ... on collision
 - never overwrite existing files
+- return the absolute saved PNG path internally
 - status shows only the saved file name
 
 PNG includes:
@@ -190,6 +194,7 @@ PNG includes:
 - per-lane cursor values
 - current lane order
 - optional reference lines and labels
+- visible value transition markers
 - selection overlay if visible
 
 PNG excludes:
@@ -201,6 +206,7 @@ PNG excludes:
 - Signals pane
 - Recent section
 - hover tooltip
+- value transition marker hover tooltip
 - trash drop zone
 
 Only PNG export is supported.
@@ -214,6 +220,9 @@ sample.blf
 ```
 
 It does not show full path, cache path, signal count, or time range.
+
+The full opened-log path may be kept in frontend state for internal commands
+and future copy/open actions, but it is not shown as persistent UI text.
 
 ## UC-13: Reuse Decode Cache
 
@@ -284,6 +293,64 @@ Behavior:
 
 No button, menu, popover, input, localStorage persistence, or multiple reference
 lines are implemented.
+
+## UC-18: Optional Value Transition Markers
+
+User may show temporary value transition markers on selected timeline lanes to
+find state changes during CAN debug.
+
+Scope:
+
+- v1 targets signals with `enum_label` values.
+- enum and bool-like signals are the intended use case.
+- continuous numeric signals are out of scope for v1.
+- numeric threshold detection is a separate future feature.
+- complex condition builders are out of scope for v1.
+
+Behavior:
+
+- marker state is lane-local and defaults to off
+- marker on/off state is keyed by signal identity:
+  `message_name + signal_name + can_id`
+- enabling markers on a lane shows small markers at value transition points
+- disabling markers hides markers for that lane
+- lane reorder preserves marker state with the signal identity
+- removing a signal from the timeline clears that signal's marker state
+- marker on/off state is temporary frontend state and is not saved
+
+Transition detection:
+
+- transitions are detected in the frontend from the visible/query-result points
+- points are evaluated in ascending `session_time` order
+- the first valid point establishes the previous value and is not marked
+- a transition is marked when the current valid point differs from the previous
+  valid point
+- `enum_label` is preferred for display when present; otherwise use the decoded
+  value
+- null or non-finite values do not create transition markers
+
+Marker interaction:
+
+- hovering a marker shows the signal name, `session_time`, and `old -> new`
+  transition
+- marker hover tooltip is not included in PNG export
+- clicking a marker moves the persistent cursor bar to that marker's
+  `session_time`
+- plot-area drag remains range selection
+- plot-area click outside markers remains cursor placement
+- lane header drag remains lane reorder / trash delete
+
+PNG export:
+
+- visible markers are included in PNG export
+- marker hover tooltip is excluded from PNG export
+
+Accuracy note:
+
+- frontend-only detection can miss short transitions if the backend query has
+  downsampled them out of the visible/query-result points
+- if exact transition detection is required, a future backend
+  transition-preserving query or event query is needed
 
 ## Out of Scope
 

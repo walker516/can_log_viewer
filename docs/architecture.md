@@ -18,11 +18,14 @@ The app is a local desktop CAN log viewer with a strict frontend/backend split.
 ## Frontend Responsibilities
 
 - Open Log UI.
+- Keep the opened log absolute path as internal state while deriving basename
+  for display.
 - Signal search and selection.
 - Lightweight Recent signal display backed by localStorage.
 - Timeline rendering.
 - Range selection, cursor placement, lane reorder, and lane delete interactions.
 - Temporary per-lane reference line state and rendering.
+- Temporary per-lane value transition marker state and rendering.
 - Render the timeline PNG bytes.
 
 The frontend does not:
@@ -34,16 +37,46 @@ The frontend does not:
 - choose PNG destination
 - expose DBC selection
 
+## Value Transition Markers
+
+Value transition marker v1 is a frontend-only timeline display aid. It does not
+change the backend cache, Tauri commands, or Rust app-data/export ownership.
+
+Responsibilities:
+
+- The frontend owns lane-local marker on/off state as temporary in-memory state.
+- Marker state is keyed by signal identity so lane reorder preserves it.
+- Signal removal clears that signal's marker state.
+- Marker state is not saved and is not Save View, session restore, or view
+  metadata persistence.
+- Transition detection runs in the frontend from already queried visible points.
+- v1 primarily targets signals with `enum_label`; continuous numeric threshold
+  detection is out of scope.
+- Marker hover and marker click are frontend interactions.
+- Marker click moves the cursor bar to the marker's `session_time`.
+- Visible markers are rendered into timeline PNG export.
+- Marker hover tooltips are transient UI and are excluded from PNG export.
+
+Accuracy boundary:
+
+- The current backend query may return downsampled points.
+- Frontend-only transition detection can miss short transitions that are absent
+  from the queried points.
+- If exact transition detection becomes required, add a future backend
+  transition-preserving query or event query.
+- v1 does not require backend, Tauri, or Rust changes.
+
 ## Tauri/Rust Responsibilities
 
 Tauri commands bridge the frontend to local system capabilities:
 
 - `decode_log`: normalize the selected log path, create/reuse cache, run backend
-  `decode` if needed, then run `inspect`
+  `decode` if needed, then run `inspect`; the response includes the normalized
+  absolute log path for frontend internal state
 - `inspect_cache`: development/helper command for inspecting a cache path
 - `query_cache`: run backend `query`
 - `export_timeline_png`: save rendered PNG bytes under app-managed
-  `exports/png`
+  `exports/png` and return the absolute saved PNG path
 
 The Rust layer owns:
 
@@ -51,6 +84,7 @@ The Rust layer owns:
 - app data root resolution
 - decode cache path calculation
 - PNG export directory, filename sanitization, timestamp, and collision suffix
+- absolute saved PNG path returned to the frontend
 
 ## Backend Responsibilities
 
@@ -140,6 +174,11 @@ Cache and exports share a root but have different lifetimes:
 - PNG exports are user-facing artifacts and are not automatically deleted.
 
 Old repo-root cache/export artifacts are not migrated automatically.
+
+The UI shows only basenames for opened logs and export status. Absolute opened
+log and saved PNG paths may be retained internally for unambiguous follow-up
+actions such as copy/open, but cache/export paths are not shown persistently in
+the main UI.
 
 ## Backend Discovery
 

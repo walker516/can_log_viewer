@@ -33,8 +33,8 @@ function App() {
     report
   });
 
-  const canExport = selection.selectedSignals.length > 0 && Boolean(query) && !report.loading;
-  const exportPng = useTimelineExport({ timelineRef, logFileName: session.logFileName, canExport, report });
+  const canExport = selection.selectedSignals.length > 0 && Boolean(query) && Boolean(session.logPath) && !report.loading;
+  const timelineExport = useTimelineExport({ timelineRef, sourceLogPath: session.logPath, canExport, report });
 
   const signalByKey = useMemo(
     () => new Map((session.inspect?.signals ?? []).map((signal) => [signalKey(signal), signal])),
@@ -57,7 +57,7 @@ function App() {
         warningSummary={warningSummary}
         onOpenLog={session.openLog}
         onFitAll={view.fitAll}
-        onExport={exportPng}
+        onExport={timelineExport.exportPng}
       />
       <section className="workspace">
         <SignalSidebar signals={session.inspect?.signals ?? []} selection={selection} recent={recent} />

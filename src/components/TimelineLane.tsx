@@ -1,8 +1,9 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
 import type { SignalIndexItem, TimelinePoint } from "../types";
 import type { ReferenceLine } from "../hooks/useReferenceLines";
 import {
+  buildValueTransitions,
   buildPath,
   buildPointMarks,
   clamp,
@@ -10,12 +11,15 @@ import {
   enumReferenceCandidates,
   formatCursorValue,
   formatTime,
+  formatTransitionValue,
   formatValue,
+  isTransitionMarkerEligible,
   nearestPoint,
   nearestReferenceCandidate,
   pointAtOrBefore,
   pointStats,
   PLOT_WIDTH,
+  type ValueTransition,
   valueToY,
   yToValue
 } from "../lib/timeline";
@@ -36,6 +40,9 @@ interface TimelineLaneProps {
   reference: ReferenceLine | null;
   onSetReference: (signal: SignalIndexItem, value: number) => void;
   onClearReference: (signal: SignalIndexItem) => void;
+  markersEnabled: boolean;
+  onToggleMarkers: (laneId: string) => void;
+  onMoveCursor: (time: number) => void;
 }
 
 // One stacked signal lane: header plus a point plot. Lanes are draggable to
@@ -54,14 +61,27 @@ export function TimelineLane({
   onHeaderPointerDown,
   reference,
   onSetReference,
-  onClearReference
+  onClearReference,
+  markersEnabled,
+  onToggleMarkers,
+  onMoveCursor
 }: TimelineLaneProps) {
   const plotRef = useRef<SVGSVGElement | null>(null);
   const [hover, setHover] = useState<{ point: TimelinePoint; x: number; y: number } | null>(null);
+  const [transitionHover, setTransitionHover] = useState<{
+    transition: ValueTransition;
+    x: number;
+    y: number;
+  } | null>(null);
   const label = signal?.signal_name ?? "Unknown";
   const stats = pointStats(points);
   const path = buildPath(points, start, end, signal?.plot_type ?? "line", stats);
   const pointMarks = buildPointMarks(points, start, end, stats);
+  const canShowTransitionMarkers = isTransitionMarkerEligible(signal, points);
+  const transitions = useMemo(
+    () => (markersEnabled && canShowTransitionMarkers ? buildValueTransitions(points) : []),
+    [markersEnabled, canShowTransitionMarkers, points]
+  );
   // Held value at the cursor time, shown in the lane's top-right. Derived from
   // cursorTime (not hover) so hovering never replaces it.
   const cursorValue = formatCursorValue(pointAtOrBefore(points, cursorTime), signal?.unit ?? "");
@@ -157,8 +177,28 @@ export function TimelineLane({
             {stats ? `${formatValue(stats.min)}-${formatValue(stats.max)}` : "no range"}
           </div>
         </div>
-        <div className="lane-cursor-value" title={cursorValue}>
-          {cursorValue}
+        <div className="lane-header-controls">
+          {canShowTransitionMarkers ? (
+            <button
+              type="button"
+              className={`marker-toggle ${markersEnabled ? "active" : ""}`}
+              title={markersEnabled ? "Hide transition markers" : "Show transition markers"}
+              aria-label={markersEnabled ? "Hide transition markers" : "Show transition markers"}
+              aria-pressed={markersEnabled}
+              onPointerDown={(event) => {
+                event.stopPropagation();
+              }}
+              onClick={(event) => {
+                event.stopPropagation();
+                onToggleMarkers(laneId);
+              }}
+            >
+              <MarkerToggleIcon />
+            </button>
+          ) : null}
+          <div className="lane-cursor-value" title={cursorValue}>
+            {cursorValue}
+          </div>
         </div>
       </div>
       <svg
@@ -172,7 +212,10 @@ export function TimelineLane({
           const point = nearestPoint(points, event.currentTarget, event.clientX, start, end);
           setHover(point ? { point, x: event.clientX, y: event.clientY } : null);
         }}
-        onPointerLeave={() => setHover(null)}
+        onPointerLeave={() => {
+          setHover(null);
+          setTransitionHover(null);
+        }}
       >
         <line x1="0" x2={PLOT_WIDTH} y1="96" y2="96" className="plot-axis" />
         {ticks.map((tick) => {
@@ -182,6 +225,16 @@ export function TimelineLane({
         {path ? <path d={path} className={signal?.plot_type === "step" ? "plot-line step" : "plot-line"} /> : null}
         {pointMarks.map((point, index) => (
           <circle key={`${point.x}:${point.y}:${index}`} cx={point.x} cy={point.y} r="3.2" className="plot-point" />
+        ))}
+        {transitions.map((transition, index) => (
+          <TransitionMarker
+            key={`${transition.session_time}:${transition.oldValue}:${transition.newValue}:${index}`}
+            transition={transition}
+            start={start}
+            end={end}
+            onHover={setTransitionHover}
+            onMoveCursor={onMoveCursor}
+          />
         ))}
         {reference && referenceVisible ? <ReferenceLineMark y={referenceY} label={referenceLabel} /> : null}
         {!path ? (
@@ -201,7 +254,11 @@ export function TimelineLane({
           onDoubleClick={clearReferenceFromHandle}
         />
       ) : null}
-      {hover ? <PointTooltip signal={signal} hover={hover} /> : null}
+      {transitionHover ? (
+        <TransitionTooltip signal={signal} hover={transitionHover} />
+      ) : hover ? (
+        <PointTooltip signal={signal} hover={hover} />
+      ) : null}
     </div>
   );
 }
@@ -226,6 +283,66 @@ function ReferenceLineMark({ y, label }: { y: number; label: string }) {
   );
 }
 
+function TransitionMarker({
+  transition,
+  start,
+  end,
+  onHover,
+  onMoveCursor
+}: {
+  transition: ValueTransition;
+  start: number;
+  end: number;
+  onHover: (hover: { transition: ValueTransition; x: number; y: number } | null) => void;
+  onMoveCursor: (time: number) => void;
+}) {
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
+    return null;
+  }
+  const x = clamp(((transition.session_time - start) / (end - start)) * PLOT_WIDTH, 0, PLOT_WIDTH);
+  return (
+    <g
+      className="transition-marker"
+      onPointerMove={(event) => {
+        event.stopPropagation();
+        onHover({ transition, x: event.clientX, y: event.clientY });
+      }}
+      onPointerLeave={() => onHover(null)}
+      onPointerDown={(event) => {
+        event.stopPropagation();
+      }}
+      onClick={(event) => {
+        event.stopPropagation();
+        event.preventDefault();
+        onMoveCursor(transition.session_time);
+      }}
+    >
+      <rect x={x - 6} y="0" width="12" height="120" className="transition-marker-hit" />
+      <line x1={x} x2={x} y1="18" y2="104" className="transition-marker-line" />
+      <path d={`M ${x} 13 L ${x + 5} 18 L ${x} 23 L ${x - 5} 18 Z`} className="transition-marker-dot" />
+    </g>
+  );
+}
+
+function MarkerToggleIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M3 3v10M13 3v10M3 8h3.5M9.5 8H13" />
+      <path d="M8 5l2.5 3L8 11 5.5 8 8 5Z" />
+    </svg>
+  );
+}
+
 // Tooltip intentionally omits source_file / path per UI policy.
 function PointTooltip({
   signal,
@@ -245,6 +362,26 @@ function PointTooltip({
       <div>
         value: {value}
         {unit}
+      </div>
+    </div>
+  );
+}
+
+function TransitionTooltip({
+  signal,
+  hover
+}: {
+  signal: SignalIndexItem | undefined;
+  hover: { transition: ValueTransition; x: number; y: number };
+}) {
+  const oldText = formatTransitionValue(hover.transition.oldValue, hover.transition.oldLabel);
+  const newText = formatTransitionValue(hover.transition.newValue, hover.transition.newLabel);
+  return (
+    <div className="point-tooltip transition-tooltip" style={{ left: hover.x + 10, top: hover.y + 10 }}>
+      <div>{signal?.signal_name ?? "Unknown"}</div>
+      <div>t: {formatTime(hover.transition.session_time)}s</div>
+      <div>
+        transition: {oldText} -&gt; {newText}
       </div>
     </div>
   );

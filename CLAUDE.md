@@ -47,6 +47,7 @@ Implemented:
 - trash drop zone delete during lane header drag
 - Recent signal shortcut in the Signals pane
 - optional draggable per-lane reference line
+- optional per-lane value transition markers for enum/state signals
 - warning summary
 - PNG export without save dialog
 - Tauri app data root for cache/export
@@ -69,6 +70,7 @@ Frontend:
 - signal search and selection
 - Recent signal shortcut
 - timeline rendering and interactions
+- temporary per-lane reference line and value transition marker state
 - PNG byte rendering
 - in-memory view state
 

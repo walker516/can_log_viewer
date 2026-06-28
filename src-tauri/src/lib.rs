@@ -1,4 +1,5 @@
 use chrono::Local;
+use serde::Serialize;
 use serde_json::Value;
 use std::env;
 use std::fs;
@@ -26,14 +27,21 @@ fn decode_log(app: AppHandle, log_path: String) -> Result<Value, String> {
         )?;
     }
 
-    run_backend(
+    let mut inspect = run_backend(
         &app,
         vec![
             "inspect".into(),
             "--cache".into(),
             cache_path.display().to_string(),
         ],
-    )
+    )?;
+    if let Some(object) = inspect.as_object_mut() {
+        object.insert(
+            "log_path".into(),
+            Value::String(log_path.display().to_string()),
+        );
+    }
+    Ok(inspect)
 }
 
 #[tauri::command]
@@ -70,16 +78,16 @@ fn query_cache(
 }
 
 // Export a timeline PNG into the app-managed exports/png directory. The frontend
-// only supplies the rendered bytes and the opened log's name; this command owns
-// the output location and the file name (sanitize + timestamp + collision
-// suffix) so the user is never asked to choose a destination. Returns the saved
-// file name (not the full path) for a brief status message.
+// supplies rendered bytes and the opened log's path; this command owns the
+// output location and file name (sanitize + timestamp + collision suffix) so the
+// user is never asked to choose a destination. Returns the absolute saved path
+// for future copy/open actions; the frontend derives any filename-only status.
 #[tauri::command]
 fn export_timeline_png(
     app: AppHandle,
-    log_file_name: String,
+    source_log_path: String,
     bytes: Vec<u8>,
-) -> Result<String, String> {
+) -> Result<ExportTimelinePngResult, String> {
     let app_root = app_data_root(&app)?;
     let dir = export_png_dir(&app_root);
     fs::create_dir_all(&dir).map_err(|error| {
@@ -91,7 +99,7 @@ fn export_timeline_png(
     })?;
 
     let timestamp = Local::now().format("%Y%m%d_%H%M%S").to_string();
-    let stem = sanitize_filename(file_stem(&log_file_name));
+    let stem = sanitize_filename(file_stem(&source_log_path));
     let base = if stem.is_empty() {
         // Fallback when the log basename is unavailable / fully sanitized away.
         format!("timeline_{timestamp}")
@@ -103,11 +111,14 @@ fn export_timeline_png(
     fs::write(&path, bytes)
         .map_err(|error| format!("failed to save PNG {}: {}", path.display(), error))?;
 
-    Ok(path
-        .file_name()
-        .and_then(|name| name.to_str())
-        .map(str::to_string)
-        .unwrap_or(base))
+    Ok(ExportTimelinePngResult {
+        saved_path: path.display().to_string(),
+    })
+}
+
+#[derive(Serialize)]
+struct ExportTimelinePngResult {
+    saved_path: String,
 }
 
 fn export_png_dir(app_root: &Path) -> PathBuf {

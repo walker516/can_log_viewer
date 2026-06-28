@@ -20,6 +20,7 @@ export interface TimelineView {
   hasRange: boolean;
   cursorLeft: string;
   fitAll: () => void;
+  setCursorTime: (time: number) => void;
   onPointerDown: (event: ReactPointerEvent<HTMLDivElement>) => void;
   onPointerMove: (event: ReactPointerEvent<HTMLDivElement>) => void;
   onPointerUp: (event: ReactPointerEvent<HTMLDivElement>) => void;
@@ -133,6 +134,16 @@ export function useTimelineView(
     }
   }, [fullStart, fullEnd]);
 
+  const moveCursorTo = useCallback(
+    (time: number) => {
+      if (!hasRange || !Number.isFinite(time)) {
+        return;
+      }
+      setCursorTime(clamp(time, start, end));
+    },
+    [hasRange, start, end]
+  );
+
   return {
     start,
     end,
@@ -142,6 +153,7 @@ export function useTimelineView(
     hasRange,
     cursorLeft,
     fitAll,
+    setCursorTime: moveCursorTo,
     onPointerDown,
     onPointerMove,
     onPointerUp,

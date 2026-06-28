@@ -60,10 +60,43 @@
   white-space: nowrap;
 }
 
+.lane-header-controls {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  max-width: 50%;
+  min-width: 0;
+}
+
+.marker-toggle {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: #6e7d8a;
+  background: transparent;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.marker-toggle:hover,
+.marker-toggle.active {
+  border-color: #b8c4cf;
+  color: #7a4d1d;
+  background: #f7efe7;
+}
+
 /* Cursor-position value for this lane, shown discreetly in the top-right. */
 .lane-cursor-value {
-  flex: 0 0 auto;
-  max-width: 45%;
+  flex: 1 1 auto;
+  min-width: 0;
   overflow: hidden;
   color: #2b3a45;
   font-size: 12px;
@@ -107,6 +140,29 @@
   fill: #1f6f95;
   stroke: #ffffff;
   stroke-width: 1.6;
+  vector-effect: non-scaling-stroke;
+}
+
+.transition-marker {
+  cursor: pointer;
+}
+
+.transition-marker-hit {
+  fill: transparent;
+  pointer-events: all;
+}
+
+.transition-marker-line {
+  stroke: rgba(126, 75, 23, 0.42);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+  vector-effect: non-scaling-stroke;
+}
+
+.transition-marker-dot {
+  fill: rgba(188, 105, 35, 0.92);
+  stroke: #ffffff;
+  stroke-width: 1.4;
   vector-effect: non-scaling-stroke;
 }
 

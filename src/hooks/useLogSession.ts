@@ -8,6 +8,7 @@ import type { StatusReporter } from "./useStatus";
 export interface LogSession {
   inspect: InspectResponse | null;
   cachePath: string;
+  logPath: string;
   logFileName: string;
   fullRange: [number | null, number | null];
   openLog: () => Promise<void>;
@@ -19,6 +20,7 @@ export interface LogSession {
 export function useLogSession({ setStatus, setLoading }: StatusReporter): LogSession {
   const [inspect, setInspect] = useState<InspectResponse | null>(null);
   const [cachePath, setCachePath] = useState("");
+  const [logPath, setLogPath] = useState("");
   const [logFileName, setLogFileName] = useState("");
 
   const openLog = useCallback(async () => {
@@ -34,15 +36,20 @@ export function useLogSession({ setStatus, setLoading }: StatusReporter): LogSes
     setLoading(true);
     setStatus("Decoding log...");
     setCachePath("");
+    setLogPath("");
     setLogFileName(baseName(selected));
     try {
       const response = await decodeLog(selected);
+      const openedLogPath = response.log_path ?? selected;
       setCachePath(response.cache);
+      setLogPath(openedLogPath);
+      setLogFileName(baseName(openedLogPath));
       setInspect(response);
       setStatus("Log loaded.");
     } catch (error) {
       setInspect(null);
       setCachePath("");
+      setLogPath("");
       setLogFileName("");
       setStatus(errorMessage(error));
     } finally {
@@ -50,5 +57,5 @@ export function useLogSession({ setStatus, setLoading }: StatusReporter): LogSes
     }
   }, [setStatus, setLoading]);
 
-  return { inspect, cachePath, logFileName, fullRange: inspect?.time_range ?? [null, null], openLog };
+  return { inspect, cachePath, logPath, logFileName, fullRange: inspect?.time_range ?? [null, null], openLog };
 }

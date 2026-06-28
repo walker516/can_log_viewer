@@ -15,6 +15,15 @@ export interface PlotPoint {
   y: number;
 }
 
+export interface ValueTransition {
+  session_time: number;
+  source_time: number;
+  oldValue: number;
+  oldLabel: string | null;
+  newValue: number;
+  newLabel: string | null;
+}
+
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
@@ -116,6 +125,46 @@ export function enumLabelForValue(points: TimelinePoint[], value: number): strin
   );
 }
 
+export function isTransitionMarkerEligible(signal: SignalIndexItem | undefined, points: TimelinePoint[]): boolean {
+  if (!signal || signal.value_type === "numeric") {
+    return false;
+  }
+  return points.some((point) => point.enum_label && isFinitePointValue(point.value));
+}
+
+export function buildValueTransitions(points: TimelinePoint[]): ValueTransition[] {
+  const transitions: ValueTransition[] = [];
+  let previous: TimelinePoint | null = null;
+
+  const validPoints = points
+    .filter((point) => isFinitePointValue(point.value))
+    .sort((left, right) => left.session_time - right.session_time);
+
+  validPoints.forEach((point) => {
+    if (!previous) {
+      previous = point;
+      return;
+    }
+    if (previous.value !== point.value || previous.enum_label !== point.enum_label) {
+      transitions.push({
+        session_time: point.session_time,
+        source_time: point.source_time,
+        oldValue: previous.value as number,
+        oldLabel: previous.enum_label,
+        newValue: point.value as number,
+        newLabel: point.enum_label
+      });
+    }
+    previous = point;
+  });
+
+  return transitions;
+}
+
+export function formatTransitionValue(value: number, enumLabel: string | null): string {
+  return enumLabel || formatValue(value);
+}
+
 function toX(time: number, start: number, end: number): number {
   return clamp(((time - start) / (end - start)) * PLOT_WIDTH, 0, PLOT_WIDTH);
 }
@@ -149,6 +198,10 @@ export function buildPath(
     }
   });
   return path;
+}
+
+function isFinitePointValue(value: number | null): value is number {
+  return value !== null && Number.isFinite(value);
 }
 
 export function buildPointMarks(

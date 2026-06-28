@@ -8,7 +8,8 @@ timeline lanes. It is not a real-time player.
 
 Core interactions include signal search, signal/Recent click-to-toggle,
 timeline range selection, Fit All, cursor inspection, lane reorder/delete,
-optional per-lane reference lines, and PNG export.
+optional per-lane reference lines, optional value transition markers, and PNG
+export.
 
 ## Status
 
@@ -91,6 +92,9 @@ Cache and PNG exports are app-managed:
   cache/logs/<hash>/
   exports/png/
 ```
+
+Opened logs and saved PNGs are tracked internally by absolute path. The UI keeps
+display text short by showing only basenames and filename-only export status.
 
 Use this for repeatable local checks:
 

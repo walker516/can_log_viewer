@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { InspectResponse, QueryResponse } from "./types";
+import type { ExportTimelinePngResponse, InspectResponse, QueryResponse } from "./types";
 
 export async function decodeLog(logPath: string): Promise<InspectResponse> {
   return invoke<InspectResponse>("decode_log", { logPath });
@@ -26,7 +26,8 @@ export async function queryCache(
 }
 
 // Exports a rendered timeline PNG into the app-managed exports/png directory.
-// The backend owns the destination and file name; returns the saved file name.
-export async function exportTimelinePng(logFileName: string, bytes: number[]): Promise<string> {
-  return invoke<string>("export_timeline_png", { logFileName, bytes });
+// The Tauri layer owns the destination and file name and returns the absolute
+// saved path for internal follow-up actions.
+export async function exportTimelinePng(sourceLogPath: string, bytes: number[]): Promise<ExportTimelinePngResponse> {
+  return invoke<ExportTimelinePngResponse>("export_timeline_png", { sourceLogPath, bytes });
 }

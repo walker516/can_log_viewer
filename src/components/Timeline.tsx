@@ -5,6 +5,7 @@ import type { TimelineView } from "../hooks/useTimelineView";
 import type { SignalSelection } from "../hooks/useSignalSelection";
 import type { ReferenceLines } from "../hooks/useReferenceLines";
 import { signalReferenceKey } from "../hooks/useReferenceLines";
+import { useTransitionMarkers } from "../hooks/useTransitionMarkers";
 import { LANE_GAP, MAX_DISPLAY_SIGNALS, TIMELINE_VERTICAL_PADDING, TIME_AXIS_HEIGHT } from "../lib/constants";
 import { formatTime } from "../lib/timeline";
 import { TimelineLane } from "./TimelineLane";
@@ -25,6 +26,7 @@ interface TimelineProps {
 export function Timeline({ timelineRef, view, selection, signalByKey, query, referenceLines }: TimelineProps) {
   const bodyHeight = useBodyHeight(timelineRef);
   const { selectedSignals, reorderSignal, removeSignal } = selection;
+  const transitionMarkers = useTransitionMarkers(selectedSignals);
 
   // Pointer-based lane drag (HTML5 drag-and-drop does not work in the WebKit
   // WebView). `drag` is the signal being dragged; the drop target is resolved
@@ -152,6 +154,9 @@ export function Timeline({ timelineRef, view, selection, signalByKey, query, ref
                   reference={referenceLines.references[signalReferenceKey(signal ?? selectedSignal)] ?? null}
                   onSetReference={referenceLines.setReference}
                   onClearReference={referenceLines.clearReference}
+                  markersEnabled={Boolean(transitionMarkers.markers[selectedSignal.key])}
+                  onToggleMarkers={transitionMarkers.toggleMarkers}
+                  onMoveCursor={view.setCursorTime}
                 />
               );
             })

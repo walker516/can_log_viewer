@@ -8,6 +8,7 @@ export interface SignalIndexItem {
 }
 
 export interface InspectResponse {
+  log_path?: string;
   cache: string;
   meta: Record<string, unknown>;
   time_range: [number | null, number | null];
@@ -32,3 +33,6 @@ export interface QueryResponse {
   missing_signals: string[];
 }
 
+export interface ExportTimelinePngResponse {
+  saved_path: string;
+}
